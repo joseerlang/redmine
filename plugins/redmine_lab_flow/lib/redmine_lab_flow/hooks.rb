@@ -58,5 +58,22 @@ module RedmineLabFlow
     rescue StandardError
       ''
     end
+
+    # Phase 4: Electronic signature modal for status changes
+    def view_issues_form_details_bottom(context = {})
+      issue = context[:issue]
+      return '' unless issue
+
+      # Only show for Assay and Sample trackers
+      return '' unless issue.respond_to?(:assay?) && (issue.assay? || issue.sample?)
+
+      context[:controller].send(:render_to_string, {
+        partial: 'hooks/redmine_lab_flow/signature_modal',
+        locals: { issue: issue }
+      })
+    rescue StandardError => e
+      Rails.logger.error "[RedmineLabFlow] Signature modal hook error: #{e.message}"
+      ''
+    end
   end
 end

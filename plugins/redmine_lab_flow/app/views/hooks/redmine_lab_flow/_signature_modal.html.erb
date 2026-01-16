@@ -1,0 +1,178 @@
+<%# Phase 4: Electronic Signature Modal for status changes requiring attestation %>
+<% if @issue && (@issue.assay? || @issue.sample?) %>
+<div id="lab-flow-signature-modal" class="lab-flow-modal" style="display: none;">
+  <div class="lab-flow-modal-overlay"></div>
+  <div class="lab-flow-modal-content">
+    <div class="lab-flow-modal-header">
+      <h3><%= I18n.t(:label_attestation) %></h3>
+      <button type="button" class="lab-flow-modal-close">&times;</button>
+    </div>
+    <div class="lab-flow-modal-body">
+      <p class="lab-flow-modal-help"><%= I18n.t(:text_signature_modal_help) %></p>
+
+      <div class="lab-flow-signature-form">
+        <%= hidden_field_tag 'signature_issue_id', @issue.id, id: 'signature_issue_id' %>
+
+        <p>
+          <label for="signature_password"><%= I18n.t(:field_password) %> <span class="required">*</span></label>
+          <input type="password" name="signature_password" id="signature_password" class="lab-flow-input" autocomplete="current-password" required />
+        </p>
+
+        <p>
+          <label for="signature_meaning"><%= I18n.t(:label_signature_meaning) %> <span class="required">*</span></label>
+          <select name="signature_meaning" id="signature_meaning" class="lab-flow-select" required>
+            <option value=""><%= I18n.t(:label_please_select) %></option>
+            <option value="authorship"><%= I18n.t(:label_signature_meaning_authorship) %></option>
+            <option value="review"><%= I18n.t(:label_signature_meaning_review) %></option>
+            <option value="approval"><%= I18n.t(:label_signature_meaning_approval) %></option>
+          </select>
+        </p>
+
+        <div id="signature-error" class="lab-flow-error" style="display: none;"></div>
+      </div>
+    </div>
+    <div class="lab-flow-modal-footer">
+      <button type="button" class="lab-flow-btn lab-flow-btn-secondary" id="signature-cancel">
+        <%= I18n.t(:button_cancel) %>
+      </button>
+      <button type="button" class="lab-flow-btn lab-flow-btn-primary" id="signature-submit">
+        <%= I18n.t(:button_submit) %>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Phase 4: Electronic Signature handling
+  (function() {
+    var signatureRequiredStatuses = <%= raw RedmineLabFlow::Setup::SIGNATURE_REQUIRED_STATUSES.map { |k| I18n.t(k) }.to_json %>;
+    var verifyUrl = '<%= url_for(controller: 'lab_flow_signatures', action: 'verify', format: :json) %>';
+    var originalFormSubmit = null;
+    var pendingStatusChange = null;
+
+    function isSignatureRequired(newStatusName) {
+      return signatureRequiredStatuses.indexOf(newStatusName) !== -1;
+    }
+
+    function showModal() {
+      document.getElementById('lab-flow-signature-modal').style.display = 'block';
+      document.getElementById('signature_password').focus();
+    }
+
+    function hideModal() {
+      document.getElementById('lab-flow-signature-modal').style.display = 'none';
+      document.getElementById('signature_password').value = '';
+      document.getElementById('signature_meaning').value = '';
+      document.getElementById('signature-error').style.display = 'none';
+    }
+
+    function showError(message) {
+      var errorDiv = document.getElementById('signature-error');
+      errorDiv.textContent = message;
+      errorDiv.style.display = 'block';
+    }
+
+    function verifySignature(callback) {
+      var password = document.getElementById('signature_password').value;
+      var meaning = document.getElementById('signature_meaning').value;
+      var issueId = document.getElementById('signature_issue_id').value;
+
+      if (!password || !meaning) {
+        showError('<%= I18n.t(:error_signature_fields_required) %>');
+        return;
+      }
+
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', verifyUrl, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-CSRF-Token', document.querySelector('meta[name="csrf-token"]').content);
+
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            var response = JSON.parse(xhr.responseText);
+            if (response.success) {
+              hideModal();
+              callback(true);
+            } else {
+              showError(response.error || '<%= I18n.t(:error_invalid_password) %>');
+            }
+          } else {
+            showError('<%= I18n.t(:error_signature_verification_failed) %>');
+          }
+        }
+      };
+
+      xhr.send(JSON.stringify({
+        issue_id: issueId,
+        password: password,
+        signature_meaning: meaning,
+        new_status: pendingStatusChange
+      }));
+    }
+
+    function interceptFormSubmit() {
+      var issueForm = document.getElementById('issue-form');
+      if (!issueForm) return;
+
+      issueForm.addEventListener('submit', function(e) {
+        var statusSelect = document.getElementById('issue_status_id');
+        if (!statusSelect) return;
+
+        var selectedOption = statusSelect.options[statusSelect.selectedIndex];
+        var newStatusName = selectedOption ? selectedOption.text : '';
+
+        if (isSignatureRequired(newStatusName)) {
+          e.preventDefault();
+          pendingStatusChange = newStatusName;
+          showModal();
+          return false;
+        }
+      });
+    }
+
+    // Modal event handlers
+    document.addEventListener('DOMContentLoaded', function() {
+      var modal = document.getElementById('lab-flow-signature-modal');
+      if (!modal) return;
+
+      // Close button
+      modal.querySelector('.lab-flow-modal-close').addEventListener('click', hideModal);
+      document.getElementById('signature-cancel').addEventListener('click', hideModal);
+
+      // Overlay click
+      modal.querySelector('.lab-flow-modal-overlay').addEventListener('click', hideModal);
+
+      // Submit button
+      document.getElementById('signature-submit').addEventListener('click', function() {
+        verifySignature(function(success) {
+          if (success) {
+            // Resubmit the form
+            var issueForm = document.getElementById('issue-form');
+            if (issueForm) {
+              // Add hidden field to indicate signature was verified
+              var signatureVerified = document.createElement('input');
+              signatureVerified.type = 'hidden';
+              signatureVerified.name = 'signature_verified';
+              signatureVerified.value = 'true';
+              issueForm.appendChild(signatureVerified);
+              issueForm.submit();
+            }
+          }
+        });
+      });
+
+      // Enter key in password field
+      document.getElementById('signature_password').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('signature-submit').click();
+        }
+      });
+
+      // Intercept form submission
+      interceptFormSubmit();
+    });
+  })();
+</script>
+<% end %>

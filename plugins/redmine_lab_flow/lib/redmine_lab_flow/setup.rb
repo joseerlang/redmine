@@ -46,12 +46,17 @@ module RedmineLabFlow
     FINALIZED_STATUS_KEY = :label_status_finalized
 
     # Phase 3: Workflow statuses for Sample/Assay lifecycle
+    # Phase 4: Added "Verified" status between QC Pending and Completed
     WORKFLOW_STATUSES = [
       { key: :label_status_accessioned, is_closed: false },
       { key: :label_status_in_analysis, is_closed: false },
       { key: :label_status_qc_pending, is_closed: false },
+      { key: :label_status_verified, is_closed: false },
       { key: :label_status_completed, is_closed: true }
     ].freeze
+
+    # Phase 4: Statuses that require electronic signature
+    SIGNATURE_REQUIRED_STATUSES = %i[label_status_verified label_status_completed].freeze
 
     # Daily Log status (simple open status for new entries)
     DAILY_LOG_INITIAL_STATUS_KEY = :label_status_in_progress
@@ -61,6 +66,16 @@ module RedmineLabFlow
       { key: :field_lot_number, format: 'list', values: :reagent_lots, filter: true, trackers: %i[label_assay] },
       { key: :field_equipment_id, format: 'list', values: :equipment_list, filter: true, trackers: %i[label_assay label_sample] }
     ].freeze
+
+    # Phase 4: Data provenance field for tracking source of data entry
+    SOURCE_TYPE_FIELD = {
+      key: :field_source_type,
+      format: 'list',
+      values: %w[web api],
+      filter: true,
+      default: 'web',
+      trackers: %i[label_assay label_sample]
+    }.freeze
 
     class << self
       def install
@@ -73,6 +88,7 @@ module RedmineLabFlow
           setup_tracker_workflows
           create_custom_fields
           create_inventory_fields
+          create_source_type_field
           associate_fields_with_trackers
         end
       rescue StandardError => e
@@ -103,6 +119,23 @@ module RedmineLabFlow
       # Returns the Completed status, or nil if not found
       def completed_status
         IssueStatus.find_by(name: I18n.t(:label_status_completed))
+      end
+
+      # Returns the Verified status, or nil if not found
+      def verified_status
+        IssueStatus.find_by(name: I18n.t(:label_status_verified))
+      end
+
+      # Returns statuses that require electronic signature
+      def signature_required_statuses
+        SIGNATURE_REQUIRED_STATUSES.map { |key| IssueStatus.find_by(name: I18n.t(key)) }.compact
+      end
+
+      # Check if a status requires electronic signature
+      def status_requires_signature?(status)
+        return false unless status
+
+        signature_required_statuses.include?(status)
       end
 
       private
@@ -207,36 +240,46 @@ module RedmineLabFlow
         accessioned = IssueStatus.find_by(name: I18n.t(:label_status_accessioned))
         in_analysis = IssueStatus.find_by(name: I18n.t(:label_status_in_analysis))
         qc_pending = IssueStatus.find_by(name: I18n.t(:label_status_qc_pending))
+        verified = IssueStatus.find_by(name: I18n.t(:label_status_verified))
         completed = IssueStatus.find_by(name: I18n.t(:label_status_completed))
         finalized = IssueStatus.find_by(name: I18n.t(FINALIZED_STATUS_KEY))
 
         # Setup workflow for Sample and Assay trackers
         [sample_tracker, assay_tracker].compact.each do |tracker|
-          setup_lims_workflow(tracker, accessioned, in_analysis, qc_pending, completed)
+          setup_lims_workflow(tracker, accessioned, in_analysis, qc_pending, verified, completed)
         end
 
         # Setup workflow for Daily Log (simpler: just needs Finalized)
         setup_daily_log_workflow(daily_log_tracker, finalized) if daily_log_tracker && finalized
       end
 
-      def setup_lims_workflow(tracker, accessioned, in_analysis, qc_pending, completed)
+      def setup_lims_workflow(tracker, accessioned, in_analysis, qc_pending, verified, completed)
         return unless tracker && accessioned && in_analysis && qc_pending && completed
 
         # Get all roles
         roles = Role.all
 
-        # Define transitions: Accessioned -> In Analysis -> QC Pending -> Completed
+        # Define transitions: Accessioned -> In Analysis -> QC Pending -> Verified -> Completed
+        # Phase 4: Added Verified status between QC Pending and Completed
         transitions = [
           [accessioned, in_analysis],
           [in_analysis, qc_pending],
+          [qc_pending, verified],
+          [verified, completed],
+          # Legacy transition for backward compatibility (will be removed in future)
           [qc_pending, completed],
           # Allow going back for corrections
           [in_analysis, accessioned],
-          [qc_pending, in_analysis]
-        ]
+          [qc_pending, in_analysis],
+          [verified, qc_pending]
+        ].compact
+
+        # Only include verified transitions if verified status exists
+        transitions = transitions.reject { |t| t.include?(nil) }
 
         roles.each do |role|
           transitions.each do |old_status, new_status|
+            next unless old_status && new_status
             next if WorkflowTransition.exists?(
               tracker_id: tracker.id,
               role_id: role.id,
@@ -289,6 +332,36 @@ module RedmineLabFlow
         create_fields_for_tracker(SAMPLE_FIELDS)
         create_fields_for_tracker(ASSAY_FIELDS)
         create_fields_for_tracker(DAILY_LOG_FIELDS)
+      end
+
+      # Phase 4: Create Source Type field for data provenance tracking
+      def create_source_type_field
+        field_def = SOURCE_TYPE_FIELD
+        name = I18n.t(field_def[:key])
+        return if IssueCustomField.exists?(name: name)
+
+        field = IssueCustomField.create!(
+          name: name,
+          field_format: field_def[:format],
+          possible_values: field_def[:values],
+          default_value: field_def[:default],
+          is_required: false,
+          is_for_all: true,
+          is_filter: field_def[:filter] || false,
+          editable: false,  # Not editable by users - set automatically
+          visible: true     # Visible in issue view
+        )
+        Rails.logger.info "[RedmineLabFlow] Created source type field: #{name}"
+
+        # Associate with specific trackers
+        field_def[:trackers]&.each do |tracker_key|
+          tracker = Tracker.find_by(name: I18n.t(tracker_key))
+          next unless tracker
+          next if tracker.custom_fields.include?(field)
+
+          tracker.custom_fields << field
+          Rails.logger.info "[RedmineLabFlow] Associated source type field with tracker '#{tracker.name}'"
+        end
       end
 
       def create_inventory_fields

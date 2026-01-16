@@ -141,3 +141,66 @@ en:
   label_equipment_status_in_use: "In Use"
   label_equipment_status_maintenance: "Under Maintenance"
   label_equipment_status_out_of_service: "Out of Service"
+
+  # Phase 4: Compliance & Data Integrity
+  label_status_verified: "Verified"
+
+  # Phase 4: Electronic Signatures
+  label_attestation: "Attestation"
+  label_signature_meaning: "Signature Meaning"
+  label_signature_meaning_authorship: "Authorship"
+  label_signature_meaning_review: "Review"
+  label_signature_meaning_approval: "Approval"
+  label_electronic_signatures: "Electronic Signatures"
+  label_signed_by: "Signed by"
+
+  # Phase 4: Signature validation messages
+  error_signature_required: "Electronic signature required for this status change. Please re-authenticate to proceed."
+  error_invalid_password: "Invalid password. Electronic signature could not be verified."
+  error_signature_fields_required: "Password and signature meaning are required."
+  error_invalid_signature_meaning: "Invalid signature meaning selected."
+  error_signature_verification_failed: "Signature verification failed. Please try again."
+  notice_signature_verified: "Electronic signature verified successfully."
+  text_signature_modal_help: "This action requires re-authentication. Please enter your password to confirm this status change."
+
+  # Phase 4: Data Provenance
+  label_data_provenance: "Data Provenance"
+  label_reason_for_change: "Reason for Change"
+  field_source_type: "Source Type"
+  label_source_type_web: "Web Interface"
+  label_source_type_api: "API/Instrument"
+
+  # Phase 4: API Keys
+  label_api_keys: "API Keys"
+  label_api_key: "API Key"
+  label_new_api_key: "New API Key"
+  label_no_api_keys: "No API keys have been created yet."
+  label_last_used: "Last Used"
+  label_active: "Active"
+  label_inactive: "Inactive"
+  label_api_usage_examples: "API Usage Examples"
+  label_get_assay: "Get Assay by Internal ID"
+  label_update_assay: "Update Assay from Instrument"
+  label_using_user_token: "Using User API Token"
+  button_regenerate: "Regenerate"
+  button_copy: "Copy"
+
+  # Phase 4: API Key messages
+  notice_api_key_created: "API key was successfully created."
+  notice_api_key_updated: "API key was successfully updated."
+  notice_api_key_deleted: "API key was successfully deleted."
+  notice_api_key_regenerated: "API key was successfully regenerated. Make sure to update your integrations."
+  notice_api_key_copied: "API key copied to clipboard."
+  text_api_keys_help: "API keys allow external instruments and systems to update assay data. Each key is project-specific and can be used with the X-API-Key header. Alternatively, users can use their personal Redmine API token with the X-Redmine-API-Key header."
+  text_confirm_api_key_regenerate: "Are you sure you want to regenerate this API key? The old key will stop working immediately."
+  text_api_keys_table_not_exists: "API keys table does not exist. Please run the plugin migrations."
+
+  # Phase 4: API Controller messages
+  error_api_authentication_failed: "API authentication failed. Please provide a valid API key or user token."
+  error_issue_not_found: "Issue not found."
+  notice_assay_updated_via_api: "Assay was successfully updated via API."
+  text_api_update_note: "Updated via external API"
+
+  # Phase 4: Permissions
+  permission_manage_api_keys: "Manage API keys"
+  permission_view_electronic_signatures: "View electronic signatures"

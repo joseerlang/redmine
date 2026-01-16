@@ -192,21 +192,24 @@ This ensures reproducibility - even if the Wiki page is updated later, your Dail
 
 ### Assay Workflow
 
-Assays follow a controlled LIMS workflow:
+Assays follow a controlled LIMS workflow with electronic signature requirements:
 
 ```
-Accessioned → In Analysis → QC Pending → Completed
-     ↑              ↓              ↓
-     └──────────────┴──────────────┘
+Accessioned → In Analysis → QC Pending → Verified → Completed
+     ↑              ↓              ↓           ↓
+     └──────────────┴──────────────┴───────────┘
          (corrections allowed)
 ```
 
-| Status | Description | Actions |
-|--------|-------------|---------|
-| **Accessioned** | Initial registration | Move to In Analysis |
-| **In Analysis** | Technical execution | Move to QC Pending or back to Accessioned |
-| **QC Pending** | Quality control validation | Move to Completed or back to In Analysis |
-| **Completed** | Final, immutable state | No further changes |
+| Status | Description | Signature Required | Actions |
+|--------|-------------|-------------------|---------|
+| **Accessioned** | Initial registration | No | Move to In Analysis |
+| **In Analysis** | Technical execution | No | Move to QC Pending or back to Accessioned |
+| **QC Pending** | Quality control validation | No | Move to Verified or back to In Analysis |
+| **Verified** | Data verified by reviewer | **Yes** | Move to Completed or back to QC Pending |
+| **Completed** | Final, immutable state | **Yes** | No further changes |
+
+**Note:** Transitions to "Verified" and "Completed" require an electronic signature (re-authentication).
 
 ### Assay Validation Rules
 
@@ -503,8 +506,152 @@ Use Redmine's issue filters to find:
 
 ---
 
+## Electronic Signatures (Compliance)
+
+Phase 4 introduces electronic signatures for regulatory compliance (21 CFR Part 11).
+
+### When Signatures are Required
+
+Electronic signatures are required when changing an Assay or Sample status to:
+- **Verified** - Data has been reviewed and verified
+- **Completed** - Final approval of results
+
+### How Electronic Signatures Work
+
+1. When you attempt to change status to Verified or Completed:
+2. A modal dialog appears requesting:
+   - **Password**: Your current Redmine password (re-authentication)
+   - **Signature Meaning**: Select one of:
+     - **Authorship** - You are the author/creator of this data
+     - **Review** - You have reviewed this data
+     - **Approval** - You are approving this data
+3. After successful verification, the status change proceeds
+4. The signature is recorded with:
+   - User identity
+   - Timestamp
+   - IP address
+   - Previous and new status
+   - Signature meaning
+
+### Viewing Signature History
+
+Signatures are recorded in the system for audit purposes. Each signature includes:
+- Who signed
+- When they signed
+- What they attested to (authorship/review/approval)
+- The status change that was made
+
+---
+
+## Data Provenance (Source Type)
+
+Phase 4 tracks the origin of all data entries:
+
+| Source Type | Description |
+|-------------|-------------|
+| **Web Interface** | Data entered manually through the Redmine UI |
+| **API/Instrument** | Data submitted via the REST API by external instruments |
+
+The **Source Type** field is automatically set and cannot be modified by users. This ensures complete traceability of data origin for audit compliance.
+
+---
+
+## API for Instrument Interoperability
+
+LabFlow provides a REST API for external instruments and systems to submit data directly.
+
+### API Authentication
+
+Two authentication methods are supported:
+
+1. **Project API Key** (recommended for instruments):
+   - Header: `X-API-Key: <your_project_api_key>`
+   - Limited to a specific project
+   - Managed in plugin settings
+
+2. **User API Token** (for user-specific access):
+   - Header: `X-Redmine-API-Key: <your_user_api_token>`
+   - Uses your personal Redmine API token
+   - Inherits your user permissions
+
+### Managing API Keys (Admin)
+
+1. Go to **Administration > Plugins > Redmine LabFlow > Configure**
+2. Select the **API Keys** tab
+3. Click **New API Key**
+4. Select a project and add a description
+5. Click **Create**
+6. Copy the generated API key (shown only once)
+
+### API Endpoints
+
+#### Get Assay by Internal ID
+
+```bash
+curl -H "X-API-Key: YOUR_API_KEY" \
+  https://your-redmine.com/lab_flow_api/assays/INTERNAL_ID
+```
+
+Response:
+```json
+{
+  "id": 123,
+  "internal_id": "TEST-001",
+  "subject": "pH Analysis",
+  "status": "In Analysis",
+  "project": "my-project",
+  "custom_fields": [
+    {"name": "Measured Value", "value": "7.2"},
+    {"name": "Unit", "value": "pH"}
+  ]
+}
+```
+
+#### Update Assay from Instrument
+
+```bash
+curl -X POST \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "custom_fields": {
+      "Measured Value": "7.35",
+      "Unit": "pH"
+    },
+    "notes": "Updated from pH meter instrument"
+  }' \
+  https://your-redmine.com/lab_flow_api/assays/INTERNAL_ID
+```
+
+Response:
+```json
+{
+  "success": true,
+  "issue_id": 123,
+  "internal_id": "TEST-001",
+  "message": "Assay was successfully updated via API."
+}
+```
+
+#### List Project Assays
+
+```bash
+curl -H "X-API-Key: YOUR_API_KEY" \
+  https://your-redmine.com/lab_flow_api/projects/PROJECT_ID/assays
+```
+
+### API Security Notes
+
+- API keys are project-specific and can only access assays in that project
+- All API updates are logged with source_type = "api"
+- API updates require notes/reason for audit trail
+- Inactive API keys are rejected immediately
+
+---
+
 ## Version History
 
+- **0.4.0** - Phase 4: Compliance & Data Integrity (Electronic Signatures, API Interoperability, Data Provenance, Verified Status)
 - **0.3.2** - Fixed workflow configuration: proper default statuses and transitions for all trackers
 - **0.3.1** - Unified plugin administration with tabbed interface for Templates, Reagents, Equipment, and Units
 - **0.3.0** - Phase 3: LIMS Core & Inventory Management (Reagents, Equipment, Workflow States, Expired Reagent Validation)

@@ -41,4 +41,168 @@
     font-weight: bold;
     margin-right: 10px;
   }
+
+  /* Phase 4: Electronic Signature Modal Styles */
+  .lab-flow-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+  }
+
+  .lab-flow-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  .lab-flow-modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    min-width: 400px;
+    max-width: 500px;
+  }
+
+  .lab-flow-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    border-radius: 6px 6px 0 0;
+  }
+
+  .lab-flow-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+  }
+
+  .lab-flow-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .lab-flow-modal-close:hover {
+    color: #333;
+  }
+
+  .lab-flow-modal-body {
+    padding: 20px;
+  }
+
+  .lab-flow-modal-help {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 14px;
+  }
+
+  .lab-flow-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 15px 20px;
+    border-top: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    border-radius: 0 0 6px 6px;
+  }
+
+  .lab-flow-signature-form label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #333;
+  }
+
+  .lab-flow-signature-form p {
+    margin-bottom: 15px;
+  }
+
+  .lab-flow-input,
+  .lab-flow-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+
+  .lab-flow-input:focus,
+  .lab-flow-select:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  }
+
+  .lab-flow-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out;
+  }
+
+  .lab-flow-btn-primary {
+    background-color: #007bff;
+    color: #fff;
+  }
+
+  .lab-flow-btn-primary:hover {
+    background-color: #0056b3;
+  }
+
+  .lab-flow-btn-secondary {
+    background-color: #6c757d;
+    color: #fff;
+  }
+
+  .lab-flow-btn-secondary:hover {
+    background-color: #545b62;
+  }
+
+  .lab-flow-error {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    padding: 10px;
+    border-radius: 4px;
+    margin-top: 10px;
+  }
+
+  /* Signature badge for signed issues */
+  .badge-signed {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    background-color: #28a745;
+    border-radius: 3px;
+    text-transform: uppercase;
+    margin-left: 5px;
+  }
+
+  .signature-info {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+  }
 </style>

@@ -1,0 +1,186 @@
+<%# Phase 4: API Keys Management Tab %>
+<div class="lab-flow-api-keys">
+  <h3><%= I18n.t(:label_api_keys) %></h3>
+
+  <p class="info"><%= I18n.t(:text_api_keys_help) %></p>
+
+  <% if LabFlowApiKey.table_exists? %>
+    <% api_keys = LabFlowApiKey.includes(:project, :created_by).sorted %>
+
+    <% if api_keys.any? %>
+      <table class="list api-keys-list">
+        <thead>
+          <tr>
+            <th><%= I18n.t(:field_project) %></th>
+            <th><%= I18n.t(:field_description) %></th>
+            <th><%= I18n.t(:label_api_key) %></th>
+            <th><%= I18n.t(:field_status) %></th>
+            <th><%= I18n.t(:field_created_on) %></th>
+            <th><%= I18n.t(:label_last_used) %></th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% api_keys.each do |api_key| %>
+            <tr class="<%= api_key.active ? '' : 'inactive' %>">
+              <td><%= link_to api_key.project.name, project_path(api_key.project) %></td>
+              <td><%= api_key.description %></td>
+              <td>
+                <code class="api-key-display"><%= api_key.masked_key %></code>
+                <button type="button" class="icon icon-copy copy-api-key"
+                        data-key="<%= api_key.api_key %>"
+                        title="<%= I18n.t(:button_copy) %>"></button>
+              </td>
+              <td>
+                <% if api_key.active %>
+                  <span class="badge badge-success"><%= I18n.t(:label_active) %></span>
+                <% else %>
+                  <span class="badge badge-secondary"><%= I18n.t(:label_inactive) %></span>
+                <% end %>
+              </td>
+              <td><%= format_time(api_key.created_at) %></td>
+              <td><%= api_key.last_used_at ? format_time(api_key.last_used_at) : '-' %></td>
+              <td class="buttons">
+                <%= link_to I18n.t(:button_edit), '#',
+                    class: 'icon icon-edit edit-api-key',
+                    data: { id: api_key.id, project_id: api_key.project_id, description: api_key.description, active: api_key.active } %>
+                <%= link_to I18n.t(:button_regenerate), regenerate_lab_flow_api_key_path(api_key),
+                    method: :post,
+                    class: 'icon icon-reload',
+                    data: { confirm: I18n.t(:text_confirm_api_key_regenerate) } %>
+                <%= link_to I18n.t(:button_delete), lab_flow_api_key_path(api_key),
+                    method: :delete,
+                    class: 'icon icon-del',
+                    data: { confirm: I18n.t(:text_are_you_sure) } %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <p class="nodata"><%= I18n.t(:label_no_api_keys) %></p>
+    <% end %>
+
+    <hr>
+
+    <h4><%= I18n.t(:label_new_api_key) %></h4>
+    <%= form_tag lab_flow_api_keys_path, method: :post, class: 'api-key-form' do %>
+      <p>
+        <%= label_tag 'lab_flow_api_key_project_id', I18n.t(:field_project) %>
+        <%= select_tag 'lab_flow_api_key[project_id]',
+            options_from_collection_for_select(Project.active.sorted, :id, :name),
+            include_blank: true,
+            required: true %>
+      </p>
+      <p>
+        <%= label_tag 'lab_flow_api_key_description', I18n.t(:field_description) %>
+        <%= text_field_tag 'lab_flow_api_key[description]', '', size: 50 %>
+      </p>
+      <p>
+        <%= submit_tag I18n.t(:button_create), class: 'btn btn-primary' %>
+      </p>
+    <% end %>
+
+    <hr>
+
+    <h4><%= I18n.t(:label_api_usage_examples) %></h4>
+    <div class="api-examples">
+      <h5><%= I18n.t(:label_get_assay) %></h5>
+      <pre><code>curl -H "X-API-Key: YOUR_API_KEY" \
+  <%= request.base_url %>/lab_flow_api/assays/INTERNAL_ID</code></pre>
+
+      <h5><%= I18n.t(:label_update_assay) %></h5>
+      <pre><code>curl -X POST \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"custom_fields": {"Measured Value": "1.5", "Unit": "mg"}, "notes": "Updated from instrument"}' \
+  <%= request.base_url %>/lab_flow_api/assays/INTERNAL_ID</code></pre>
+
+      <h5><%= I18n.t(:label_using_user_token) %></h5>
+      <pre><code>curl -H "X-Redmine-API-Key: YOUR_USER_TOKEN" \
+  <%= request.base_url %>/lab_flow_api/assays/INTERNAL_ID</code></pre>
+    </div>
+  <% else %>
+    <p class="warning"><%= I18n.t(:text_api_keys_table_not_exists) %></p>
+  <% end %>
+</div>
+
+<style>
+  .lab-flow-api-keys .info {
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+  }
+
+  .api-keys-list tr.inactive {
+    opacity: 0.6;
+  }
+
+  .api-key-display {
+    background-color: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: monospace;
+  }
+
+  .copy-api-key {
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-left: 5px;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 11px;
+    border-radius: 3px;
+  }
+
+  .badge-success {
+    background-color: #28a745;
+    color: #fff;
+  }
+
+  .badge-secondary {
+    background-color: #6c757d;
+    color: #fff;
+  }
+
+  .api-examples {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 4px;
+    margin-top: 10px;
+  }
+
+  .api-examples pre {
+    background-color: #2d2d2d;
+    color: #f8f8f2;
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+  }
+
+  .api-examples h5 {
+    margin-top: 15px;
+    margin-bottom: 5px;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Copy API key to clipboard
+    document.querySelectorAll('.copy-api-key').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var key = this.dataset.key;
+        navigator.clipboard.writeText(key).then(function() {
+          alert('<%= I18n.t(:notice_api_key_copied) %>');
+        });
+      });
+    });
+  });
+</script>

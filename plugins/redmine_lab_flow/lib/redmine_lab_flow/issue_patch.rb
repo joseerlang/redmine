@@ -14,6 +14,12 @@ module RedmineLabFlow
 
       # Validate expired reagents on Assay completion
       validate :validate_reagent_not_expired_on_completion
+
+      # Phase 4: Validate electronic signature for status changes
+      validate :validate_electronic_signature_for_status_change, on: :update
+
+      # Phase 4: Track signature verification state
+      attr_accessor :signature_verified
     end
 
     module InstanceMethods
@@ -58,6 +64,14 @@ module RedmineLabFlow
         tracker_id == assay_tracker.id
       end
 
+      # Check if this issue is a Sample
+      def sample?
+        sample_tracker = RedmineLabFlow::Setup.sample_tracker
+        return false unless sample_tracker
+
+        tracker_id == sample_tracker.id
+      end
+
       # Check if issue is being moved to Completed status
       def completing?
         return false unless status_id_changed?
@@ -66,6 +80,32 @@ module RedmineLabFlow
         return false unless completed_status
 
         status_id == completed_status.id
+      end
+
+      # Phase 4: Check if issue is being moved to Verified status
+      def verifying?
+        return false unless status_id_changed?
+
+        verified_status = RedmineLabFlow::Setup.verified_status
+        return false unless verified_status
+
+        status_id == verified_status.id
+      end
+
+      # Phase 4: Check if status change requires electronic signature
+      def requires_signature?
+        return false unless status_id_changed?
+        return false unless assay? || sample?
+
+        new_status = IssueStatus.find_by(id: status_id)
+        RedmineLabFlow::Setup.status_requires_signature?(new_status)
+      end
+
+      # Phase 4: Check if a recent electronic signature exists for this status change
+      def has_recent_signature?(user = User.current)
+        return false unless LabFlowElectronicSignature.table_exists?
+
+        LabFlowElectronicSignature.recent_signature_for(self, user, seconds: 300).present?
       end
 
       # Check if the user can edit a finalized issue
@@ -136,6 +176,20 @@ module RedmineLabFlow
         if reagent.expired?
           errors.add(:base, I18n.t(:error_reagent_expired, lot: reagent.lot_number, expiration: reagent.expiration_date))
         end
+      end
+
+      # Phase 4: Validate that electronic signature exists for status changes to Verified/Completed
+      def validate_electronic_signature_for_status_change
+        return unless requires_signature?
+        return unless LabFlowElectronicSignature.table_exists?
+
+        # Skip if signature was verified in this request (set by controller)
+        return if signature_verified
+
+        # Check if there's a recent signature
+        return if has_recent_signature?
+
+        errors.add(:base, I18n.t(:error_signature_required))
       end
     end
   end
