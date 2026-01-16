@@ -114,6 +114,7 @@ namespace :lab_flow do
 
     user = User.find_by(login: 'admin') || User.first
     default_status = IssueStatus.sorted.first
+    default_priority = IssuePriority.default || IssuePriority.first
 
     # Sample entries
     if project.issues.where(tracker: sample).count.zero?
@@ -126,6 +127,7 @@ namespace :lab_flow do
           project: project,
           tracker: sample,
           status: default_status,
+          priority: default_priority,
           subject: data[:subject],
           author: user,
           description: "Sample for analysis. Type: #{data[:type]}"
@@ -160,6 +162,7 @@ namespace :lab_flow do
           project: project,
           tracker: daily_log,
           status: default_status,
+          priority: default_priority,
           subject: data[:subject],
           author: user,
           description: data[:desc]
@@ -181,6 +184,7 @@ namespace :lab_flow do
           project: project,
           tracker: assay,
           status: default_status,
+          priority: default_priority,
           subject: data[:subject],
           author: user,
           description: "Analysis performed per #{data[:method]}"

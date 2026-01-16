@@ -1,0 +1,66 @@
+<h2><%= l(:label_create_wiki_for_issue) %></h2>
+
+<div class="box">
+  <p>
+    <strong><%= l(:field_issue) %>:</strong>
+    <%= link_to "##{@issue.id} - #{@issue.subject}", issue_path(@issue) %>
+  </p>
+  <p>
+    <strong><%= l(:field_tracker) %>:</strong>
+    <%= @issue.tracker.name %>
+  </p>
+</div>
+
+<%= form_tag(issue_issue_wiki_pages_path(@issue), method: :post) do %>
+  <div class="box tabular">
+    <p>
+      <%= label_tag 'wiki_page_title', l(:field_title) %>
+      <%= text_field_tag 'wiki_page[title]', @page_title, size: 60, id: 'wiki_page_title' %>
+      <em class="info"><%= l(:text_wiki_page_title_help) %></em>
+    </p>
+
+    <p>
+      <%= label_tag 'wiki_page_content', l(:field_content) %>
+      <%= text_area_tag 'wiki_page[content]', @content.text, cols: 80, rows: 25, id: 'wiki_page_content', class: 'wiki-edit' %>
+    </p>
+
+    <% if LabFlowProcedureTemplate.table_exists? && LabFlowProcedureTemplate.active.any? %>
+      <p>
+        <%= label_tag 'template_selector', l(:label_select_procedure_template) %>
+        <%= select_tag 'template_id',
+                       options_for_select(
+                         [[l(:label_no_template), '']] +
+                         LabFlowProcedureTemplate.active.sorted.map { |t| [t.name, t.id] }
+                       ),
+                       id: 'template_selector' %>
+        <em class="info"><%= l(:text_select_template_help) %></em>
+      </p>
+    <% end %>
+  </div>
+
+  <p>
+    <%= submit_tag l(:button_create), class: 'btn btn-primary' %>
+    <%= link_to l(:button_cancel), issue_path(@issue), class: 'btn' %>
+  </p>
+<% end %>
+
+<%= javascript_tag do %>
+  $(function() {
+    $('#template_selector').on('change', function() {
+      var templateId = $(this).val();
+      if (templateId) {
+        $.ajax({
+          url: '<%= wiki_templates_path(format: :json) %>',
+          data: { id: templateId },
+          success: function(data) {
+            if (data.content) {
+              if (confirm('<%= j l(:text_confirm_template_replace) %>')) {
+                $('#wiki_page_content').val(data.content);
+              }
+            }
+          }
+        });
+      }
+    });
+  });
+<% end %>

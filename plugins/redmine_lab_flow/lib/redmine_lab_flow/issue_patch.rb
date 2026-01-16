@@ -9,7 +9,7 @@ module RedmineLabFlow
       prepend InstanceMethods
 
       # Validate reason for change on Daily Logs
-      validate :validate_reason_for_change, on: :update
+      validate :validate_reason_for_change_on_daily_log, on: :update
     end
 
     module InstanceMethods
@@ -54,17 +54,23 @@ module RedmineLabFlow
         settings.allow_admin_unlock_finalized
       end
 
+      private
+
       # Validate that Daily Logs require a reason for change (notes)
-      def validate_reason_for_change
+      def validate_reason_for_change_on_daily_log
         return unless daily_log?
         return if new_record?
 
-        # Check if there are actual changes (journal details or notes)
-        return unless @current_journal
+        # Only validate if there's a journal being created with changes
+        journal = current_journal
+        return unless journal
 
-        # If there are changes being made, notes are required
-        has_changes = changed? || @current_journal.details.present?
-        if has_changes && @current_journal.notes.blank?
+        # Check if there are actual changes being made
+        has_changes = changed? || journal.details.present?
+        return unless has_changes
+
+        # Check if notes are provided
+        if journal.notes.blank?
           errors.add(:base, I18n.t(:error_reason_for_change_required))
         end
       end

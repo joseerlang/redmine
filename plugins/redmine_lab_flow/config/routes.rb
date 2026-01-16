@@ -14,3 +14,8 @@ end
 
 # Project lab flow settings
 patch 'projects/:project_id/lab_flow_settings', to: 'lab_flow_settings#update', as: 'lab_flow_settings'
+
+# Issue Wiki integration - create Wiki page from issue
+resources :issues, only: [] do
+  resources :wiki_pages, controller: 'issue_wiki_pages', only: [:new, :create], as: 'issue_wiki_pages'
+end
