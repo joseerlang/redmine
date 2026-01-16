@@ -4,8 +4,8 @@ class ProcedureTemplatesController < ApplicationController
   layout 'admin'
   self.main_menu = false
 
-  before_action :require_admin
-  before_action :find_template, only: %i[edit update destroy]
+  before_action :require_admin, except: [:show]
+  before_action :find_template, only: %i[show edit update destroy]
 
   def index
     @templates = LabFlowProcedureTemplate.sorted
@@ -24,6 +24,12 @@ class ProcedureTemplatesController < ApplicationController
       redirect_to procedure_templates_path
     else
       render :new
+    end
+  end
+
+  def show
+    respond_to do |format|
+      format.json { render json: { id: @template.id, name: @template.name, content: @template.content } }
     end
   end
 

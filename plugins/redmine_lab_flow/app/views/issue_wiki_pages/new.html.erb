@@ -50,10 +50,9 @@
       var templateId = $(this).val();
       if (templateId) {
         $.ajax({
-          url: '<%= wiki_templates_path(format: :json) %>',
-          data: { id: templateId },
+          url: '/procedure_templates/' + templateId + '.json',
           success: function(data) {
-            if (data.content) {
+            if (data && data.content) {
               if (confirm('<%= j l(:text_confirm_template_replace) %>')) {
                 $('#wiki_page_content').val(data.content);
               }

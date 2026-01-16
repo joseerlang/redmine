@@ -21,6 +21,17 @@ module RedmineLabFlow
       })
     end
 
+    # Issue description bottom - Wiki actions
+    def view_issues_show_description_bottom(context = {})
+      issue = context[:issue]
+      return '' unless issue
+
+      context[:controller].send(:render_to_string, {
+        partial: 'hooks/redmine_lab_flow/issue_wiki_actions',
+        locals: { issue: issue }
+      })
+    end
+
     # Issue edit notes - reason for change requirement
     def view_issues_edit_notes_bottom(context = {})
       issue = context[:issue]

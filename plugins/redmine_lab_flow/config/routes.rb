@@ -4,7 +4,7 @@
 get 'projects/:project_id/lab_flow', to: 'lab_flow#index', as: 'project_lab_flow'
 
 # Admin procedure templates CRUD
-resources :procedure_templates, except: [:show]
+resources :procedure_templates
 
 # Project-level wiki templates API (JSON)
 scope 'projects/:project_id' do

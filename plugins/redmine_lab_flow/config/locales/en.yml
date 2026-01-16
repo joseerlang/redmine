@@ -82,6 +82,7 @@ en:
   # Wiki Integration from Issues
   label_linked_wiki_page: "Linked Wiki Page"
   label_no_wiki_linked: "No Wiki page linked"
+  label_view_linked_wiki: "View Linked Wiki"
   label_create_wiki_for_issue: "Create Wiki Page for Issue"
   button_create_wiki_page: "Create Wiki Page"
   text_create_wiki_from_issue: "Create a new Wiki page linked to this issue"

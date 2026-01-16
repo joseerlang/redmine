@@ -1,0 +1,14 @@
+<% if defined?(issue) && issue %>
+  <% if issue.project.module_enabled?(:laboratory_management) && issue.project.wiki %>
+    <% wiki_page = RedmineLabFlow::Helpers.find_linked_wiki_page(issue) %>
+    <%# Only show create button if no wiki page is linked %>
+    <% unless wiki_page %>
+      <% if User.current.allowed_to?(:edit_wiki_pages, issue.project) %>
+        <hr />
+        <p class="lab-flow-wiki-actions">
+          <%= link_to l(:button_create_wiki_page), new_issue_issue_wiki_page_path(issue), class: 'icon icon-add' %>
+        </p>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>

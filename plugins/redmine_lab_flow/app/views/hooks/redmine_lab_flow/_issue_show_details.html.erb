@@ -1,35 +1,14 @@
-<% if defined?(issue) && issue %>
-  <%# Wiki Integration - Show linked Wiki or create button %>
-  <% if issue.project.module_enabled?(:laboratory_management) && issue.project.wiki %>
-    <% wiki_page = RedmineLabFlow::Helpers.find_linked_wiki_page(issue) %>
-    <tr>
-      <th scope="row"><%= l(:label_linked_wiki_page) %>:</th>
-      <td class="wiki-link">
-        <% if wiki_page %>
-          <%= link_to wiki_page.pretty_title, project_wiki_page_path(issue.project, wiki_page.title), class: 'icon icon-wiki' %>
-          <span class="wiki-version">(v<%= wiki_page.content&.version || 1 %>)</span>
-        <% elsif User.current.allowed_to?(:edit_wiki_pages, issue.project) %>
-          <%= link_to l(:button_create_wiki_page),
-                      new_issue_issue_wiki_page_path(issue),
-                      class: 'icon icon-add',
-                      title: l(:text_create_wiki_from_issue) %>
-        <% else %>
-          <span class="nodata"><%= l(:label_no_wiki_linked) %></span>
-        <% end %>
-      </td>
-    </tr>
-  <% end %>
-
+<% if defined?(issue) && issue && issue.project.module_enabled?(:laboratory_management) %>
   <%# Finalization status %>
   <% if RedmineLabFlow::Helpers.issue_is_finalized?(issue) %>
-    <tr>
-      <th scope="row"><%= l(:field_finalization_status) %>:</th>
-      <td class="finalized-status">
-        <span class="badge badge-finalized"><%= l(:label_finalized) %></span>
-        <% if RedmineLabFlow::Helpers.issue_finalized_editable?(issue, User.current) %>
-          <span class="info"><%= l(:text_admin_can_edit_finalized) %></span>
-        <% end %>
-      </td>
-    </tr>
+<tr>
+  <th scope="row"><%= l(:field_finalization_status) %>:</th>
+  <td class="finalized-status">
+    <span class="badge badge-finalized"><%= l(:label_finalized) %></span>
+    <% if RedmineLabFlow::Helpers.issue_finalized_editable?(issue, User.current) %>
+      <span class="info"><%= l(:text_admin_can_edit_finalized) %></span>
+    <% end %>
+  </td>
+</tr>
   <% end %>
 <% end %>
