@@ -147,6 +147,21 @@ This ensures reproducibility - even if the Wiki page is updated later, your Dail
 - Always record the method and instrument used
 - Document detection limits for quality assurance
 - Include uncertainty for regulatory compliance
+- Select the reagent lot number used for traceability
+- Record the equipment used for the analysis
+
+### Assay Workflow States
+
+Assays follow a controlled workflow with these statuses:
+
+| Status | Description |
+|--------|-------------|
+| **Accessioned** | Initial registration of the assay |
+| **In Analysis** | Technical execution phase |
+| **QC Pending** | Awaiting quality control validation |
+| **Completed** | Final, immutable state |
+
+**Note:** An Assay cannot be moved to "Completed" if it uses an expired reagent.
 
 ---
 
@@ -228,14 +243,92 @@ Project administrators can configure whether admins can edit finalized records:
 
 ### Reason for Change
 
-When editing Daily Log entries, you must provide a reason for change in the Notes field. This ensures audit compliance:
+When editing Daily Log or Assay entries, you must provide a reason for change in the Notes field. This ensures audit compliance:
 
-1. Edit a Daily Log
+1. Edit a Daily Log or Assay
 2. Make your changes
 3. In the **Notes** field, explain why you made the change
 4. Submit
 
 The reason is recorded in the issue's journal/history for audit purposes.
+
+---
+
+## Inventory Management (Admin)
+
+LabFlow includes a complete inventory management system for reagents and equipment.
+
+### Managing Reagents
+
+Access via **Administration > Lab Reagents**
+
+#### Creating a Reagent
+
+1. Click **New Reagent**
+2. Fill in the fields:
+   - **Name** (required): Reagent name (e.g., "Hydrochloric Acid")
+   - **Lot Number** (required): Unique lot identifier (e.g., "LOT-2024-001")
+   - **Expiration Date**: When the reagent expires
+   - **Quantity**: Amount available
+   - **Unit**: Measurement unit (mL, g, etc.)
+   - **Supplier**: Vendor name
+   - **Catalog Number**: Supplier's catalog number
+   - **Storage Conditions**: How to store (e.g., "2-8C")
+   - **Active**: Whether available for use
+3. Click **Create**
+
+#### Reagent Alerts
+
+The system displays warnings for:
+- **Expired reagents**: Red badge, requires immediate attention
+- **Expiring soon**: Yellow badge, reagents expiring within 30 days
+
+#### Using Reagents in Assays
+
+When creating or editing an Assay, select the reagent lot from the **Lot Number** dropdown. This ensures:
+- Full traceability of materials used
+- Automatic validation against expired reagents
+- Compliance with quality standards
+
+**Important:** An Assay cannot be completed if it uses an expired reagent.
+
+### Managing Equipment
+
+Access via **Administration > Lab Equipment**
+
+#### Creating Equipment
+
+1. Click **New Equipment**
+2. Fill in the fields:
+   - **Name** (required): Equipment name (e.g., "pH Meter")
+   - **Serial Number**: Unique identifier
+   - **Model**: Equipment model
+   - **Manufacturer**: Equipment manufacturer
+   - **Calibration Due**: Next calibration date
+   - **Last Calibration**: Most recent calibration date
+   - **Location**: Where the equipment is stored
+   - **Status**: Current availability status
+   - **Active**: Whether available for use
+3. Click **Create**
+
+#### Equipment Status
+
+| Status | Description |
+|--------|-------------|
+| **Available** | Ready for use |
+| **In Use** | Currently being used |
+| **Maintenance** | Under maintenance |
+| **Out of Service** | Not available |
+
+#### Calibration Alerts
+
+The system displays warnings for:
+- **Calibration overdue**: Red badge, requires immediate attention
+- **Calibration due soon**: Yellow badge, due within 30 days
+
+#### Using Equipment in Issues
+
+When creating Samples or Assays, select the equipment from the **Equipment ID** dropdown for full traceability.
 
 ---
 
@@ -325,5 +418,6 @@ Use Redmine's issue filters to find:
 
 ## Version History
 
+- **0.3.0** - Phase 3: LIMS Core & Inventory Management (Reagents, Equipment, Workflow States, Expired Reagent Validation)
 - **0.2.0** - Phase 2: ELN Integration (Procedure Templates, Wiki Reference, Finalization)
 - **0.1.0** - Phase 1: ISA Laboratory Foundation (Trackers, Custom Fields, Dashboard)
