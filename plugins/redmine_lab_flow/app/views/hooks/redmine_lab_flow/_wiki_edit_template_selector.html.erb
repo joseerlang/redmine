@@ -1,0 +1,44 @@
+<% if @page&.new_record? && LabFlowProcedureTemplate.active.any? %>
+  <div id="wiki-template-selector" style="margin-bottom: 1em;">
+    <label for="procedure_template_id"><%= l(:label_select_procedure_template) %></label>
+    <%= select_tag 'procedure_template_id',
+                   options_from_collection_for_select(LabFlowProcedureTemplate.active.sorted, :id, :name),
+                   include_blank: l(:label_no_template),
+                   id: 'procedure_template_id' %>
+  </div>
+
+  <script>
+    (function() {
+      var templateSelector = document.getElementById('procedure_template_id');
+      if (!templateSelector) return;
+
+      templateSelector.addEventListener('change', function() {
+        var templateId = this.value;
+        if (!templateId) return;
+
+        var projectId = '<%= @project&.identifier %>';
+        var url = '/' + projectId + '/wiki_templates/' + templateId + '.json';
+
+        fetch(url, {
+          headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          credentials: 'same-origin'
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+          var textarea = document.getElementById('content_text');
+          if (textarea) {
+            if (textarea.value.trim() === '' || confirm('<%= j l(:text_confirm_template_replace) %>')) {
+              textarea.value = data.content;
+            }
+          }
+        })
+        .catch(function(error) {
+          console.error('Error loading template:', error);
+        });
+      });
+    })();
+  </script>
+<% end %>

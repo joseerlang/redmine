@@ -1,0 +1,80 @@
+en:
+  # Module
+  project_module_laboratory_management: "Laboratory Management"
+
+  # Menu & Labels
+  label_lab_flow: "Lab Flow"
+  label_lab_flow_settings: "LabFlow Settings"
+  label_sample: "Sample"
+  label_sample_plural: "Samples"
+  label_daily_log: "Daily Log"
+  label_assay: "Assay"
+
+  # Tracker descriptions
+  tracker_sample_description: "Physical sample tracking with unique identifiers"
+  tracker_daily_log_description: "Electronic Lab Notebook entries"
+  tracker_assay_description: "Quantitative measurements and analysis"
+
+  # Custom Fields - Sample
+  field_internal_id: "Internal ID"
+  field_sample_type: "Sample Type"
+  field_storage_location: "Storage Location"
+  field_collection_date: "Collection Date"
+  field_expiration_date: "Expiration Date"
+  field_sample_source: "Sample Source"
+
+  # Custom Fields - Assay
+  field_measured_value: "Measured Value"
+  field_unit: "Unit"
+  field_method: "Method"
+  field_instrument: "Instrument"
+  field_detection_limit: "Detection Limit"
+  field_uncertainty: "Measurement Uncertainty"
+
+  # Custom Fields - Daily Log
+  field_experiment_reference: "Experiment Reference"
+  field_lab_conditions: "Lab Conditions"
+  field_equipment_used: "Equipment Used"
+  field_observations: "Observations"
+  field_protocol_version: "Protocol Version"
+  field_reviewed_by: "Reviewed By"
+  field_weather_conditions: "Weather Conditions"
+  field_start_time: "Start Time"
+  field_end_time: "End Time"
+
+  # Settings
+  label_configurable_units: "Available Units"
+  text_units_help: "Enter one unit per line (e.g., mg, ml, g)"
+
+  # Permissions
+  permission_view_lab_entities: "View lab entities"
+  permission_manage_lab_entities: "Manage lab entities"
+
+  # Phase 2 - Procedure Templates
+  label_procedure_templates: "Procedure Templates"
+  label_procedure_template: "Procedure Template"
+  label_procedure_template_new: "New Procedure Template"
+  label_procedure_template_edit: "Edit Procedure Template"
+  label_select_procedure_template: "Select Template"
+  label_no_template: "-- No Template --"
+  text_confirm_template_replace: "This will replace the current content. Continue?"
+  text_procedure_template_content_help: "Use Markdown formatting for the template content."
+
+  # Phase 2 - Procedure Reference Field
+  field_procedure_reference: "Procedure Reference"
+  label_wiki_reference: "Wiki Reference"
+  text_wiki_reference_help: "Links to a specific version of a Wiki page for procedure traceability."
+
+  # Phase 2 - Finalization / IP Protection
+  label_status_finalized: "Finalized"
+  label_finalized: "Finalized"
+  field_finalization_status: "Finalization Status"
+  text_admin_can_edit_finalized: "(Administrators can edit)"
+
+  # Phase 2 - Project Settings
+  setting_allow_admin_unlock_finalized: "Allow administrators to edit finalized records"
+  text_allow_admin_unlock_finalized_help: "When enabled, administrators can modify Daily Log entries even after they are marked as Finalized."
+
+  # Phase 2 - Audit / Reason for Change
+  error_reason_for_change_required: "Reason for change is required when editing Daily Log entries."
+  text_reason_for_change_required: "A reason for change is required in the Notes field for audit compliance."

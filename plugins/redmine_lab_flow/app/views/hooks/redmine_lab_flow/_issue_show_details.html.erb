@@ -1,0 +1,11 @@
+<% if defined?(issue) && issue && RedmineLabFlow::Helpers.issue_is_finalized?(issue) %>
+  <tr>
+    <th scope="row"><%= l(:field_finalization_status) %>:</th>
+    <td class="finalized-status">
+      <span class="badge badge-finalized"><%= l(:label_finalized) %></span>
+      <% if RedmineLabFlow::Helpers.issue_finalized_editable?(issue, User.current) %>
+        <span class="info"><%= l(:text_admin_can_edit_finalized) %></span>
+      <% end %>
+    </td>
+  </tr>
+<% end %>

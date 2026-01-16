@@ -1,0 +1,88 @@
+<h2><%= l(:label_lab_flow) %></h2>
+
+<div class="lab-flow-dashboard">
+  <div class="splitcontentleft">
+    <% if @sample_tracker %>
+      <fieldset class="box">
+        <legend><%= l(:label_sample_plural) %> (<%= @samples_count %>)</legend>
+        <p class="buttons">
+          <% if User.current.allowed_to?(:add_issues, @project) && @project.trackers.include?(@sample_tracker) %>
+            <%= link_to l(:label_issue_new),
+                        new_project_issue_path(@project, issue: { tracker_id: @sample_tracker.id }),
+                        class: 'icon icon-add' %>
+          <% end %>
+          <%= link_to l(:label_issue_view_all),
+                      project_issues_path(@project, set_filter: 1, tracker_id: @sample_tracker.id),
+                      class: 'icon icon-list' %>
+        </p>
+        <% if @recent_samples.any? %>
+          <p><strong>Recent:</strong></p>
+          <ul>
+            <% @recent_samples.each do |sample| %>
+              <li><%= link_to sample.subject, issue_path(sample) %> - <%= sample.status.name %></li>
+            <% end %>
+          </ul>
+        <% end %>
+      </fieldset>
+    <% end %>
+
+    <% if @assay_tracker %>
+      <fieldset class="box">
+        <legend><%= l(:label_assay) %> (<%= @assays_count %>)</legend>
+        <p class="buttons">
+          <% if User.current.allowed_to?(:add_issues, @project) && @project.trackers.include?(@assay_tracker) %>
+            <%= link_to l(:label_issue_new),
+                        new_project_issue_path(@project, issue: { tracker_id: @assay_tracker.id }),
+                        class: 'icon icon-add' %>
+          <% end %>
+          <%= link_to l(:label_issue_view_all),
+                      project_issues_path(@project, set_filter: 1, tracker_id: @assay_tracker.id),
+                      class: 'icon icon-list' %>
+        </p>
+        <% if @recent_assays.any? %>
+          <p><strong>Recent:</strong></p>
+          <ul>
+            <% @recent_assays.each do |assay| %>
+              <li><%= link_to assay.subject, issue_path(assay) %> - <%= assay.status.name %></li>
+            <% end %>
+          </ul>
+        <% end %>
+      </fieldset>
+    <% end %>
+  </div>
+
+  <div class="splitcontentright">
+    <% if @daily_log_tracker %>
+      <fieldset class="box">
+        <legend><%= l(:label_daily_log) %> (<%= @logs_count %>)</legend>
+        <p class="buttons">
+          <% if User.current.allowed_to?(:add_issues, @project) && @project.trackers.include?(@daily_log_tracker) %>
+            <%= link_to l(:label_issue_new),
+                        new_project_issue_path(@project, issue: { tracker_id: @daily_log_tracker.id }),
+                        class: 'icon icon-add' %>
+          <% end %>
+          <%= link_to l(:label_issue_view_all),
+                      project_issues_path(@project, set_filter: 1, tracker_id: @daily_log_tracker.id),
+                      class: 'icon icon-list' %>
+        </p>
+        <% if @recent_logs.any? %>
+          <p><strong>Recent:</strong></p>
+          <ul>
+            <% @recent_logs.each do |log| %>
+              <li><%= link_to log.subject, issue_path(log) %> - <%= log.status.name %></li>
+            <% end %>
+          </ul>
+        <% end %>
+      </fieldset>
+    <% end %>
+  </div>
+</div>
+
+<% content_for :sidebar do %>
+  <h3><%= l(:label_lab_flow) %></h3>
+  <p>
+    <strong><%= l(:label_sample_plural) %>:</strong> <%= @samples_count %><br>
+    <strong><%= l(:label_assay) %>:</strong> <%= @assays_count %><br>
+    <strong><%= l(:label_daily_log) %>:</strong> <%= @logs_count %>
+  </p>
+<% end %>

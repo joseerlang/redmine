@@ -1,0 +1,36 @@
+<div class="contextual">
+  <%= link_to l(:label_procedure_template_new), new_procedure_template_path, class: 'icon icon-add' %>
+</div>
+
+<h2><%= l(:label_procedure_templates) %></h2>
+
+<% if @templates.any? %>
+  <table class="list">
+    <thead>
+      <tr>
+        <th><%= l(:field_name) %></th>
+        <th><%= l(:field_description) %></th>
+        <th><%= l(:field_active) %></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @templates.each do |template| %>
+        <tr class="<%= cycle('odd', 'even') %>">
+          <td><%= link_to template.name, edit_procedure_template_path(template) %></td>
+          <td><%= truncate(template.description, length: 100) %></td>
+          <td><%= checked_image(template.active) %></td>
+          <td class="buttons">
+            <%= link_to l(:button_edit), edit_procedure_template_path(template), class: 'icon icon-edit' %>
+            <%= link_to l(:button_delete), procedure_template_path(template),
+                        method: :delete,
+                        data: { confirm: l(:text_are_you_sure) },
+                        class: 'icon icon-del' %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% end %>

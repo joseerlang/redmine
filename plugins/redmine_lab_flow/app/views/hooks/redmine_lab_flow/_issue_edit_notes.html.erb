@@ -1,0 +1,5 @@
+<% if defined?(issue) && issue && !issue.new_record? && RedmineLabFlow::Helpers.issue_requires_reason_for_change?(issue) %>
+<p class="info lab-flow-audit-info">
+  <strong><%= l(:text_reason_for_change_required) %></strong>
+</p>
+<% end %>

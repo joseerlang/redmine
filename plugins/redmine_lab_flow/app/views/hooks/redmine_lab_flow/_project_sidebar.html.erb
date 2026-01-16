@@ -1,0 +1,4 @@
+<% if @project && @project.module_enabled?(:laboratory_management) %>
+  <h3><%= l(:label_lab_flow) %></h3>
+  <p><%= link_to l(:label_lab_flow), project_lab_flow_path(@project) %></p>
+<% end %>

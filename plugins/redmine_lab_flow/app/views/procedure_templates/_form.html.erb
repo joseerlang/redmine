@@ -1,0 +1,24 @@
+<%= labelled_form_for @template, url: @template.new_record? ? procedure_templates_path : procedure_template_path(@template) do |f| %>
+  <%= error_messages_for 'template' %>
+
+  <div class="box tabular">
+    <p>
+      <%= f.text_field :name, size: 60, required: true %>
+    </p>
+    <p>
+      <%= f.text_area :description, rows: 3, cols: 60 %>
+    </p>
+    <p>
+      <%= f.text_area :content, rows: 20, cols: 80, class: 'wiki-edit', required: true %>
+      <em class="info"><%= l(:text_procedure_template_content_help) %></em>
+    </p>
+    <p>
+      <%= f.check_box :active %>
+    </p>
+  </div>
+
+  <p>
+    <%= submit_tag l(:button_save) %>
+    <%= link_to l(:button_cancel), procedure_templates_path %>
+  </p>
+<% end %>

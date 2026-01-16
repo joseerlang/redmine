@@ -1,0 +1,23 @@
+<% @settings = LabFlowProjectSetting.for_project(@project) %>
+
+<%= form_tag(lab_flow_settings_path(@project), method: :patch) do %>
+  <fieldset class="box tabular settings">
+    <legend><%= l(:label_lab_flow_settings) %></legend>
+
+    <p>
+      <%= check_box_tag 'lab_flow_project_setting[allow_admin_unlock_finalized]',
+                        '1',
+                        @settings.allow_admin_unlock_finalized,
+                        id: 'allow_admin_unlock_finalized' %>
+      <label for="allow_admin_unlock_finalized">
+        <%= l(:setting_allow_admin_unlock_finalized) %>
+      </label>
+      <br>
+      <em class="info"><%= l(:text_allow_admin_unlock_finalized_help) %></em>
+    </p>
+  </fieldset>
+
+  <p>
+    <%= submit_tag l(:button_save) %>
+  </p>
+<% end %>
