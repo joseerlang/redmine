@@ -36,26 +36,8 @@ Redmine::Plugin.register :redmine_lab_flow do
        if: Proc.new { |p| p.module_enabled?(:laboratory_management) },
        after: :issues
 
-  # Admin menu for procedure templates
-  menu :admin_menu, :procedure_templates,
-       { controller: 'procedure_templates', action: 'index' },
-       caption: :label_procedure_templates,
-       html: { class: 'icon icon-list' },
-       after: :custom_fields
-
-  # Admin menu for lab reagents
-  menu :admin_menu, :lab_reagents,
-       { controller: 'lab_reagents', action: 'index' },
-       caption: :label_lab_reagents,
-       html: { class: 'icon icon-package' },
-       after: :procedure_templates
-
-  # Admin menu for lab equipment
-  menu :admin_menu, :lab_equipment,
-       { controller: 'lab_equipment', action: 'index' },
-       caption: :label_lab_equipment,
-       html: { class: 'icon icon-server-authentication' },
-       after: :lab_reagents
+  # Note: Procedure Templates, Lab Reagents, and Lab Equipment are now managed
+  # through the plugin settings page (/settings/plugin/redmine_lab_flow)
 end
 
 # Register project settings tab and apply patches

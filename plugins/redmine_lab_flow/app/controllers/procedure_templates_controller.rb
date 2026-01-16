@@ -7,8 +7,10 @@ class ProcedureTemplatesController < ApplicationController
   before_action :require_admin, except: [:show]
   before_action :find_template, only: %i[show edit update destroy]
 
+  helper :settings
+
   def index
-    @templates = LabFlowProcedureTemplate.sorted
+    redirect_to plugin_settings_path
   end
 
   def new
@@ -21,7 +23,7 @@ class ProcedureTemplatesController < ApplicationController
 
     if @template.save
       flash[:notice] = l(:notice_successful_create)
-      redirect_to procedure_templates_path
+      redirect_to plugin_settings_path
     else
       render :new
     end
@@ -42,7 +44,7 @@ class ProcedureTemplatesController < ApplicationController
 
     if @template.save
       flash[:notice] = l(:notice_successful_update)
-      redirect_to procedure_templates_path
+      redirect_to plugin_settings_path
     else
       render :edit
     end
@@ -51,10 +53,14 @@ class ProcedureTemplatesController < ApplicationController
   def destroy
     @template.destroy
     flash[:notice] = l(:notice_successful_delete)
-    redirect_to procedure_templates_path
+    redirect_to plugin_settings_path
   end
 
   private
+
+  def plugin_settings_path
+    "/settings/plugin/redmine_lab_flow?tab=procedure_templates"
+  end
 
   def find_template
     @template = LabFlowProcedureTemplate.find(params[:id])

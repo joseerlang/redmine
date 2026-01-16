@@ -97,8 +97,10 @@ en:
   label_status_in_analysis: "In Analysis"
   label_status_qc_pending: "QC Pending"
   label_status_completed: "Completed"
+  label_status_in_progress: "In Progress"
 
   # Phase 3: Inventory - Reagents
+  label_inventory: "Inventory"
   label_lab_reagents: "Lab Reagents"
   label_reagent_new: "New Reagent"
   label_reagent_edit: "Edit Reagent"
@@ -117,6 +119,7 @@ en:
   error_reason_for_change_required_assay: "Reason for change is required when editing Assay entries."
 
   # Phase 3: Inventory - Equipment
+  label_calibration: "Calibration"
   label_lab_equipment: "Lab Equipment"
   label_equipment_new: "New Equipment"
   label_equipment_edit: "Edit Equipment"

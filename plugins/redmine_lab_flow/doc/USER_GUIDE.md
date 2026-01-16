@@ -33,11 +33,35 @@ A new **Lab Flow** menu item will appear in your project menu.
 
 LabFlow creates three specialized trackers:
 
-| Tracker | Purpose |
-|---------|---------|
-| **Sample** | Track physical samples with unique identifiers |
-| **Daily Log** | Electronic Lab Notebook entries |
-| **Assay** | Quantitative measurements and analysis results |
+| Tracker | Purpose | Default Status |
+|---------|---------|----------------|
+| **Sample** | Track physical samples with unique identifiers | Accessioned |
+| **Daily Log** | Electronic Lab Notebook entries | In Progress |
+| **Assay** | Quantitative measurements and analysis results | Accessioned |
+
+### Workflow Statuses
+
+LabFlow automatically creates and configures the following statuses:
+
+**For Sample and Assay trackers (LIMS workflow):**
+
+| Status | Type | Description |
+|--------|------|-------------|
+| **Accessioned** | Open | Initial registration of the item |
+| **In Analysis** | Open | Technical execution phase |
+| **QC Pending** | Open | Awaiting quality control validation |
+| **Completed** | Closed | Final, immutable state |
+
+**Workflow transitions:** Accessioned → In Analysis → QC Pending → Completed
+
+**For Daily Log tracker (ELN workflow):**
+
+| Status | Type | Description |
+|--------|------|-------------|
+| **In Progress** | Open | Active lab notebook entry |
+| **Finalized** | Closed | Immutable record for IP protection |
+
+**Workflow transitions:** In Progress → Finalized
 
 ---
 
@@ -47,7 +71,8 @@ LabFlow creates three specialized trackers:
 
 1. Go to **Lab Flow** in the project menu
 2. Click **New Sample**
-3. Fill in the required fields:
+3. The sample will be created with status **Accessioned**
+4. Fill in the required fields:
    - **Subject**: Descriptive name (e.g., "Soil Sample A-001")
    - **Internal ID** (required): Unique identifier (e.g., "SOIL-2024-001")
    - **Sample Type**: Select from Biological, Chemical, Environmental, Control, Standard
@@ -55,6 +80,16 @@ LabFlow creates three specialized trackers:
    - **Collection Date**: When the sample was collected
    - **Expiration Date**: Sample expiry date
    - **Sample Source**: Origin of the sample
+   - **Equipment ID**: Select the equipment used (optional)
+
+### Sample Workflow
+
+Samples follow this lifecycle:
+
+1. **Accessioned** - Sample is registered in the system
+2. **In Analysis** - Sample is being processed or analyzed
+3. **QC Pending** - Awaiting quality control review
+4. **Completed** - Sample processing is complete (immutable)
 
 ### Sample Best Practices
 
@@ -71,7 +106,8 @@ LabFlow creates three specialized trackers:
 
 1. Go to **Lab Flow** in the project menu
 2. Click **New Daily Log**
-3. Fill in the fields:
+3. The entry will be created with status **In Progress**
+4. Fill in the fields:
    - **Subject**: Brief description of the day's work
    - **Experiment Reference** (required): Reference identifier (e.g., "EXP-2024-001")
    - **Description**: Detailed notes using Markdown formatting
@@ -82,12 +118,22 @@ LabFlow creates three specialized trackers:
    - **Start Time / End Time**: Work duration
    - **Procedure Reference**: Link to a Wiki SOP (versioned)
 
+### Daily Log Workflow
+
+Daily Logs follow a simple two-state workflow:
+
+1. **In Progress** - Entry is being written or updated
+2. **Finalized** - Entry is locked for IP protection (immutable)
+
+Once finalized, the Daily Log cannot be edited (unless admin override is enabled).
+
 ### Daily Log Best Practices
 
 - Write entries the same day work is performed
 - Use Markdown formatting for structured notes
 - Link to procedure Wiki pages for reproducibility
 - Include all relevant observations, even unexpected ones
+- Finalize entries when complete to protect intellectual property
 
 ### Wiki Integration
 
@@ -132,7 +178,8 @@ This ensures reproducibility - even if the Wiki page is updated later, your Dail
 
 1. Go to **Lab Flow** in the project menu
 2. Click **New Assay**
-3. Fill in the fields:
+3. The assay will be created with status **Accessioned**
+4. Fill in the fields:
    - **Subject**: What was analyzed (e.g., "pH Analysis - SOIL-2024-001")
    - **Measured Value** (required): Quantitative result
    - **Unit** (required): Measurement unit (mg, mL, %, units, etc.)
@@ -140,6 +187,36 @@ This ensures reproducibility - even if the Wiki page is updated later, your Dail
    - **Instrument**: Equipment used for analysis
    - **Detection Limit**: Sensitivity threshold
    - **Uncertainty**: Measurement uncertainty
+   - **Lot Number**: Select the reagent lot used (for traceability)
+   - **Equipment ID**: Select the equipment used
+
+### Assay Workflow
+
+Assays follow a controlled LIMS workflow:
+
+```
+Accessioned → In Analysis → QC Pending → Completed
+     ↑              ↓              ↓
+     └──────────────┴──────────────┘
+         (corrections allowed)
+```
+
+| Status | Description | Actions |
+|--------|-------------|---------|
+| **Accessioned** | Initial registration | Move to In Analysis |
+| **In Analysis** | Technical execution | Move to QC Pending or back to Accessioned |
+| **QC Pending** | Quality control validation | Move to Completed or back to In Analysis |
+| **Completed** | Final, immutable state | No further changes |
+
+### Assay Validation Rules
+
+**Expired Reagent Check:** An Assay **cannot** be moved to "Completed" if the selected **Lot Number** is linked to a reagent with an expiration date in the past. This ensures:
+
+- Only valid materials are used for final results
+- Compliance with quality standards
+- Full traceability of materials
+
+**Reason for Change:** When editing an Assay, you must provide a reason in the Notes field (audit compliance).
 
 ### Assay Best Practices
 
@@ -147,21 +224,10 @@ This ensures reproducibility - even if the Wiki page is updated later, your Dail
 - Always record the method and instrument used
 - Document detection limits for quality assurance
 - Include uncertainty for regulatory compliance
-- Select the reagent lot number used for traceability
-- Record the equipment used for the analysis
-
-### Assay Workflow States
-
-Assays follow a controlled workflow with these statuses:
-
-| Status | Description |
-|--------|-------------|
-| **Accessioned** | Initial registration of the assay |
-| **In Analysis** | Technical execution phase |
-| **QC Pending** | Awaiting quality control validation |
-| **Completed** | Final, immutable state |
-
-**Note:** An Assay cannot be moved to "Completed" if it uses an expired reagent.
+- **Always select the reagent lot number** used for traceability
+- **Always select the equipment** used for the analysis
+- Move through workflow states as work progresses
+- Only move to "Completed" after QC review
 
 ---
 
@@ -178,20 +244,37 @@ Access it via **Lab Flow** in the project menu.
 
 ---
 
+## Plugin Administration
+
+All administrative functions for LabFlow are centralized in the plugin settings page.
+
+### Accessing Plugin Settings
+
+1. Go to **Administration > Plugins**
+2. Find **Redmine LabFlow** and click **Configure**
+3. You will see four tabs:
+   - **Procedure Templates** - Manage SOP templates
+   - **Lab Reagents** - Manage reagent inventory
+   - **Lab Equipment** - Manage equipment inventory
+   - **Available Units** - Configure measurement units
+
+---
+
 ## Procedure Templates (Admin)
 
 Administrators can create reusable SOP templates.
 
 ### Creating a Template
 
-1. Go to **Administration > Procedure Templates**
-2. Click **New Procedure Template**
-3. Fill in:
+1. Go to **Administration > Plugins > Redmine LabFlow > Configure**
+2. Select the **Procedure Templates** tab
+3. Click **New Procedure Template**
+4. Fill in:
    - **Name**: Template name (e.g., "Standard Operating Procedure")
    - **Description**: Brief description
    - **Content**: Markdown template content
    - **Active**: Whether template is available for use
-4. Click **Create**
+5. Click **Create**
 
 ### Using Templates in Wiki
 
@@ -216,18 +299,20 @@ LabFlow includes 6 pre-built templates:
 
 ## Record Finalization (IP Protection)
 
-For intellectual property protection and regulatory compliance, records can be finalized to become immutable.
+For intellectual property protection and regulatory compliance, Daily Log records can be finalized to become immutable.
 
-### Finalizing a Record
+### Finalizing a Daily Log
 
-1. Edit a Daily Log issue
+1. Edit a Daily Log issue (must be in **In Progress** status)
 2. Change the status to **Finalized**
-3. Save the issue
+3. Provide a reason for change in the Notes field
+4. Save the issue
 
 Once finalized:
 - Description becomes read-only
 - Custom fields cannot be modified
 - A "Finalized" badge appears on the issue
+- The record serves as legal evidence of work performed
 
 ### Admin Override
 
@@ -236,6 +321,8 @@ Project administrators can configure whether admins can edit finalized records:
 1. Go to **Project Settings > Lab Flow**
 2. Toggle **Allow administrators to edit finalized records**
 3. Save
+
+**Note:** Even with admin override, all changes are tracked in the issue journal for audit compliance.
 
 ---
 
@@ -256,11 +343,11 @@ The reason is recorded in the issue's journal/history for audit purposes.
 
 ## Inventory Management (Admin)
 
-LabFlow includes a complete inventory management system for reagents and equipment.
+LabFlow includes a complete inventory management system for reagents and equipment, accessible from the plugin settings page.
 
 ### Managing Reagents
 
-Access via **Administration > Lab Reagents**
+Access via **Administration > Plugins > Redmine LabFlow > Configure > Lab Reagents**
 
 #### Creating a Reagent
 
@@ -294,7 +381,7 @@ When creating or editing an Assay, select the reagent lot from the **Lot Number*
 
 ### Managing Equipment
 
-Access via **Administration > Lab Equipment**
+Access via **Administration > Plugins > Redmine LabFlow > Configure > Lab Equipment**
 
 #### Creating Equipment
 
@@ -336,10 +423,10 @@ When creating Samples or Assays, select the equipment from the **Equipment ID** 
 
 ### Configuring Units
 
-1. Go to **Administration > Plugins**
-2. Find **LabFlow** and click **Configure**
+1. Go to **Administration > Plugins > Redmine LabFlow > Configure**
+2. Select the **Available Units** tab
 3. Edit the **Configurable Units** list (one per line)
-4. Save
+4. Click **Apply** to save
 
 Default units: mg, mL, g, L, %, ppm, ppb, units, mol, mmol
 
@@ -418,6 +505,8 @@ Use Redmine's issue filters to find:
 
 ## Version History
 
+- **0.3.2** - Fixed workflow configuration: proper default statuses and transitions for all trackers
+- **0.3.1** - Unified plugin administration with tabbed interface for Templates, Reagents, Equipment, and Units
 - **0.3.0** - Phase 3: LIMS Core & Inventory Management (Reagents, Equipment, Workflow States, Expired Reagent Validation)
 - **0.2.0** - Phase 2: ELN Integration (Procedure Templates, Wiki Reference, Finalization)
 - **0.1.0** - Phase 1: ISA Laboratory Foundation (Trackers, Custom Fields, Dashboard)

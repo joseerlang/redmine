@@ -1,5 +1,49 @@
-<p>
-  <%= label_tag 'settings_units', l(:label_configurable_units) %><br>
-  <%= text_area_tag 'settings[units]', @settings['units'], rows: 10, cols: 30, id: 'settings_units' %>
-  <em class="info"><%= l(:text_units_help) %></em>
-</p>
+<%
+  # Define tabs for plugin settings
+  lab_flow_tabs = [
+    { name: 'procedure_templates', partial: 'settings/lab_flow/procedure_templates', label: :label_procedure_templates },
+    { name: 'lab_reagents', partial: 'settings/lab_flow/lab_reagents', label: :label_lab_reagents },
+    { name: 'lab_equipment', partial: 'settings/lab_flow/lab_equipment', label: :label_lab_equipment },
+    { name: 'units', partial: 'settings/lab_flow/units', label: :label_configurable_units }
+  ]
+  selected_tab = params[:tab] || 'procedure_templates'
+%>
+
+<div class="tabs">
+  <ul>
+    <% lab_flow_tabs.each do |tab| %>
+      <li>
+        <%= link_to l(tab[:label]),
+            "#",
+            id: "tab-#{tab[:name]}",
+            class: (tab[:name] == selected_tab ? 'selected' : nil),
+            onclick: "showTab('#{tab[:name]}', this); return false;" %>
+      </li>
+    <% end %>
+  </ul>
+</div>
+
+<% lab_flow_tabs.each do |tab| %>
+  <div id="tab-content-<%= tab[:name] %>"
+       class="tab-content"
+       style="<%= tab[:name] != selected_tab ? 'display:none' : '' %>">
+    <%= render partial: tab[:partial], locals: { settings: settings } %>
+  </div>
+<% end %>
+
+<%= javascript_tag do %>
+function showTab(tabName, link) {
+  // Hide all tab contents
+  document.querySelectorAll('.tab-content').forEach(function(el) {
+    el.style.display = 'none';
+  });
+  // Remove selected class from all tabs
+  document.querySelectorAll('.tabs ul li a').forEach(function(el) {
+    el.classList.remove('selected');
+  });
+  // Show selected tab content
+  document.getElementById('tab-content-' + tabName).style.display = 'block';
+  // Add selected class to clicked tab
+  link.classList.add('selected');
+}
+<% end %>

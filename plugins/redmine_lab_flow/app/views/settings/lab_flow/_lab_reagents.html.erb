@@ -1,0 +1,64 @@
+<%
+  reagents = LabReagent.sorted
+  expired_count = LabReagent.expired.count
+  expiring_soon_count = LabReagent.expiring_soon.count
+%>
+
+<div class="contextual">
+  <%= link_to l(:label_reagent_new), new_lab_reagent_path, class: 'icon icon-add' %>
+</div>
+
+<% if expired_count > 0 || expiring_soon_count > 0 %>
+<div class="flash warning">
+  <% if expired_count > 0 %>
+    <strong><%= l(:label_expired_reagents, count: expired_count) %></strong><br>
+  <% end %>
+  <% if expiring_soon_count > 0 %>
+    <%= l(:label_expiring_soon_reagents, count: expiring_soon_count) %>
+  <% end %>
+</div>
+<% end %>
+
+<% if reagents.any? %>
+  <table class="list">
+    <thead>
+      <tr>
+        <th><%= l(:field_name) %></th>
+        <th><%= l(:field_lot_number) %></th>
+        <th><%= l(:field_expiration_date) %></th>
+        <th><%= l(:field_quantity) %></th>
+        <th><%= l(:field_supplier) %></th>
+        <th><%= l(:field_status) %></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% reagents.each do |reagent| %>
+      <tr class="<%= reagent.expired? ? 'expired' : (reagent.expiring_soon? ? 'expiring-soon' : '') %>">
+        <td><%= reagent.name %></td>
+        <td><%= reagent.lot_number %></td>
+        <td><%= format_date(reagent.expiration_date) %></td>
+        <td><%= reagent.quantity %> <%= reagent.unit %></td>
+        <td><%= reagent.supplier %></td>
+        <td>
+          <% if reagent.expired? %>
+            <span class="badge badge-expired"><%= l(:label_expired) %></span>
+          <% elsif reagent.expiring_soon? %>
+            <span class="badge badge-warning"><%= l(:label_expiring_soon) %></span>
+          <% elsif reagent.active? %>
+            <span class="badge badge-valid"><%= l(:label_valid) %></span>
+          <% else %>
+            <span class="badge"><%= l(:label_inactive) %></span>
+          <% end %>
+        </td>
+        <td class="buttons">
+          <%= link_to l(:button_edit), edit_lab_reagent_path(reagent), class: 'icon icon-edit' %>
+          <%= link_to l(:button_delete), lab_reagent_path(reagent), method: :delete, data: { confirm: l(:text_are_you_sure) }, class: 'icon icon-del' %>
+        </td>
+      </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% end %>

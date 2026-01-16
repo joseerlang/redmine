@@ -7,10 +7,10 @@ class LabEquipmentController < ApplicationController
   before_action :require_admin
   before_action :find_equipment, only: %i[edit update destroy]
 
+  helper :settings
+
   def index
-    @equipment = LabEquipment.sorted
-    @calibration_overdue_count = LabEquipment.calibration_overdue.count
-    @calibration_due_soon_count = LabEquipment.calibration_due_soon.count
+    redirect_to plugin_settings_path
   end
 
   def new
@@ -24,7 +24,7 @@ class LabEquipmentController < ApplicationController
     if @equipment_item.save
       update_equipment_field_values
       flash[:notice] = l(:notice_successful_create)
-      redirect_to lab_equipment_index_path
+      redirect_to plugin_settings_path
     else
       render :new
     end
@@ -39,7 +39,7 @@ class LabEquipmentController < ApplicationController
     if @equipment_item.save
       update_equipment_field_values
       flash[:notice] = l(:notice_successful_update)
-      redirect_to lab_equipment_index_path
+      redirect_to plugin_settings_path
     else
       render :edit
     end
@@ -49,10 +49,14 @@ class LabEquipmentController < ApplicationController
     @equipment_item.destroy
     update_equipment_field_values
     flash[:notice] = l(:notice_successful_delete)
-    redirect_to lab_equipment_index_path
+    redirect_to plugin_settings_path
   end
 
   private
+
+  def plugin_settings_path
+    "/settings/plugin/redmine_lab_flow?tab=lab_equipment"
+  end
 
   def find_equipment
     @equipment_item = LabEquipment.find(params[:id])

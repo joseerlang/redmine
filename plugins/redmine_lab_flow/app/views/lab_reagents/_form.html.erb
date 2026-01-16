@@ -1,27 +1,57 @@
-<%= labelled_fields_for :lab_reagent, @reagent do |f| %>
-  <p>
-    <%= f.text_field :name, size: 50, required: true %>
-  </p>
-  <p>
-    <%= f.text_field :lot_number, size: 30, required: true %>
-  </p>
-  <p>
-    <%= f.date_field :expiration_date %>
-  </p>
-  <p>
-    <%= f.text_field :quantity, size: 10 %>
-    <%= f.text_field :unit, size: 10 %>
-  </p>
-  <p>
-    <%= f.text_field :supplier, size: 50 %>
-  </p>
-  <p>
-    <%= f.text_field :catalog_number, size: 30 %>
-  </p>
-  <p>
-    <%= f.text_field :storage_conditions, size: 50 %>
-  </p>
-  <p>
-    <%= f.check_box :active %>
-  </p>
-<% end %>
+<%= error_messages_for 'reagent' %>
+
+<div class="splitcontent">
+  <div class="splitcontentleft">
+    <%= labelled_fields_for :lab_reagent, @reagent do |f| %>
+      <fieldset class="box tabular">
+        <legend><%= l(:label_information) %></legend>
+        <p>
+          <%= f.text_field :name, size: 50, required: true %>
+        </p>
+        <p>
+          <%= f.text_field :lot_number, size: 30, required: true %>
+        </p>
+        <p>
+          <%= f.text_field :supplier, size: 50 %>
+        </p>
+        <p>
+          <%= f.text_field :catalog_number, size: 30 %>
+        </p>
+      </fieldset>
+    <% end %>
+  </div>
+
+  <div class="splitcontentright">
+    <%= labelled_fields_for :lab_reagent, @reagent do |f| %>
+      <fieldset class="box tabular">
+        <legend><%= l(:label_inventory) %></legend>
+        <p>
+          <%= f.text_field :quantity, size: 10 %>
+        </p>
+        <p>
+          <%= f.text_field :unit, size: 10 %>
+        </p>
+        <p>
+          <%= f.date_field :expiration_date %>
+          <% if @reagent.persisted? %>
+            <% if @reagent.expired? %>
+              <span class="icon icon-warning"><%= l(:label_expired) %></span>
+            <% elsif @reagent.expiring_soon? %>
+              <span class="icon icon-warning"><%= l(:label_expiring_soon) %></span>
+            <% end %>
+          <% end %>
+        </p>
+        <p>
+          <%= f.text_field :storage_conditions, size: 40 %>
+        </p>
+      </fieldset>
+
+      <fieldset class="box tabular">
+        <legend><%= l(:field_status) %></legend>
+        <p>
+          <%= f.check_box :active %>
+        </p>
+      </fieldset>
+    <% end %>
+  </div>
+</div>

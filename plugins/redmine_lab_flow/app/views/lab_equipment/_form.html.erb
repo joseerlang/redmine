@@ -1,29 +1,55 @@
-<%= labelled_fields_for :lab_equipment, @equipment_item do |f| %>
-  <p>
-    <%= f.text_field :name, size: 50, required: true %>
-  </p>
-  <p>
-    <%= f.text_field :serial_number, size: 30 %>
-  </p>
-  <p>
-    <%= f.text_field :model, size: 30 %>
-  </p>
-  <p>
-    <%= f.text_field :manufacturer, size: 50 %>
-  </p>
-  <p>
-    <%= f.date_field :calibration_due %>
-  </p>
-  <p>
-    <%= f.date_field :last_calibration %>
-  </p>
-  <p>
-    <%= f.text_field :location, size: 50 %>
-  </p>
-  <p>
-    <%= f.select :status, LabEquipment::STATUSES.map { |s| [l("label_equipment_status_#{s}", default: s.humanize), s] } %>
-  </p>
-  <p>
-    <%= f.check_box :active %>
-  </p>
-<% end %>
+<%= error_messages_for 'equipment_item' %>
+
+<div class="splitcontent">
+  <div class="splitcontentleft">
+    <%= labelled_fields_for :lab_equipment, @equipment_item do |f| %>
+      <fieldset class="box tabular">
+        <legend><%= l(:label_information) %></legend>
+        <p>
+          <%= f.text_field :name, size: 50, required: true %>
+        </p>
+        <p>
+          <%= f.text_field :manufacturer, size: 50 %>
+        </p>
+        <p>
+          <%= f.text_field :model, size: 30 %>
+        </p>
+        <p>
+          <%= f.text_field :serial_number, size: 30 %>
+        </p>
+        <p>
+          <%= f.text_field :location, size: 50 %>
+        </p>
+      </fieldset>
+    <% end %>
+  </div>
+
+  <div class="splitcontentright">
+    <%= labelled_fields_for :lab_equipment, @equipment_item do |f| %>
+      <fieldset class="box tabular">
+        <legend><%= l(:label_calibration) %></legend>
+        <p>
+          <%= f.date_field :last_calibration %>
+        </p>
+        <p>
+          <%= f.date_field :calibration_due %>
+          <% if @equipment_item.calibration_overdue? %>
+            <span class="icon icon-warning"><%= l(:label_calibration_overdue) %></span>
+          <% elsif @equipment_item.calibration_due_soon? %>
+            <span class="icon icon-warning"><%= l(:label_calibration_due_soon) %></span>
+          <% end %>
+        </p>
+      </fieldset>
+
+      <fieldset class="box tabular">
+        <legend><%= l(:field_status) %></legend>
+        <p>
+          <%= f.select :status, LabEquipment::STATUSES.map { |s| [l("label_equipment_status_#{s}", default: s.humanize), s] } %>
+        </p>
+        <p>
+          <%= f.check_box :active %>
+        </p>
+      </fieldset>
+    <% end %>
+  </div>
+</div>

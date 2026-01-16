@@ -53,6 +53,9 @@ module RedmineLabFlow
       { key: :label_status_completed, is_closed: true }
     ].freeze
 
+    # Daily Log status (simple open status for new entries)
+    DAILY_LOG_INITIAL_STATUS_KEY = :label_status_in_progress
+
     # Phase 3: Additional fields for inventory management
     INVENTORY_FIELDS = [
       { key: :field_lot_number, format: 'list', values: :reagent_lots, filter: true, trackers: %i[label_assay] },
@@ -64,9 +67,10 @@ module RedmineLabFlow
         return unless tables_exist?
 
         ActiveRecord::Base.transaction do
-          create_trackers
-          create_finalized_status
           create_workflow_statuses
+          create_finalized_status
+          create_trackers
+          setup_tracker_workflows
           create_custom_fields
           create_inventory_fields
           associate_fields_with_trackers
@@ -119,6 +123,21 @@ module RedmineLabFlow
           )
           Rails.logger.info "[RedmineLabFlow] Created workflow status: #{name}"
         end
+
+        # Create initial status for Daily Log if needed
+        create_daily_log_initial_status
+      end
+
+      def create_daily_log_initial_status
+        name = I18n.t(DAILY_LOG_INITIAL_STATUS_KEY)
+        return if IssueStatus.exists?(name: name)
+
+        IssueStatus.create!(
+          name: name,
+          is_closed: false,
+          position: 1  # First position so it's the default
+        )
+        Rails.logger.info "[RedmineLabFlow] Created status: #{name}"
       end
 
       def create_finalized_status
@@ -134,21 +153,136 @@ module RedmineLabFlow
       end
 
       def create_trackers
+        # Use Accessioned as default for Sample/Assay
+        accessioned_status = IssueStatus.find_by(name: I18n.t(:label_status_accessioned))
+        # Use In Progress as default for Daily Log
+        in_progress_status = IssueStatus.find_by(name: I18n.t(DAILY_LOG_INITIAL_STATUS_KEY))
+        # Fallback to first status
         default_status = IssueStatus.sorted.first
-        return unless default_status
 
         TRACKERS.each do |tracker_def|
           name = I18n.t(tracker_def[:key])
-          next if Tracker.exists?(name: name)
 
-          Tracker.create!(
-            name: name,
-            description: I18n.t(tracker_def[:desc_key]),
-            default_status_id: default_status.id,
-            position: Tracker.maximum(:position).to_i + 1
-          )
-          Rails.logger.info "[RedmineLabFlow] Created tracker: #{name}"
+          # Determine appropriate default status
+          status_for_tracker = case tracker_def[:key]
+                               when :label_daily_log
+                                 in_progress_status || default_status
+                               else
+                                 accessioned_status || default_status
+                               end
+
+          next unless status_for_tracker
+
+          tracker = Tracker.find_by(name: name)
+          if tracker
+            # Update existing tracker's default status if needed
+            new_status = case tracker_def[:key]
+                         when :label_daily_log
+                           in_progress_status
+                         else
+                           accessioned_status
+                         end
+            if new_status && tracker.default_status_id != new_status.id
+              tracker.update!(default_status_id: new_status.id)
+              Rails.logger.info "[RedmineLabFlow] Updated default status for tracker: #{name}"
+            end
+          else
+            Tracker.create!(
+              name: name,
+              description: I18n.t(tracker_def[:desc_key]),
+              default_status_id: status_for_tracker.id,
+              position: Tracker.maximum(:position).to_i + 1
+            )
+            Rails.logger.info "[RedmineLabFlow] Created tracker: #{name}"
+          end
         end
+      end
+
+      def setup_tracker_workflows
+        sample_tracker = Tracker.find_by(name: I18n.t(:label_sample))
+        assay_tracker = Tracker.find_by(name: I18n.t(:label_assay))
+        daily_log_tracker = Tracker.find_by(name: I18n.t(:label_daily_log))
+
+        # Get workflow statuses
+        accessioned = IssueStatus.find_by(name: I18n.t(:label_status_accessioned))
+        in_analysis = IssueStatus.find_by(name: I18n.t(:label_status_in_analysis))
+        qc_pending = IssueStatus.find_by(name: I18n.t(:label_status_qc_pending))
+        completed = IssueStatus.find_by(name: I18n.t(:label_status_completed))
+        finalized = IssueStatus.find_by(name: I18n.t(FINALIZED_STATUS_KEY))
+
+        # Setup workflow for Sample and Assay trackers
+        [sample_tracker, assay_tracker].compact.each do |tracker|
+          setup_lims_workflow(tracker, accessioned, in_analysis, qc_pending, completed)
+        end
+
+        # Setup workflow for Daily Log (simpler: just needs Finalized)
+        setup_daily_log_workflow(daily_log_tracker, finalized) if daily_log_tracker && finalized
+      end
+
+      def setup_lims_workflow(tracker, accessioned, in_analysis, qc_pending, completed)
+        return unless tracker && accessioned && in_analysis && qc_pending && completed
+
+        # Get all roles
+        roles = Role.all
+
+        # Define transitions: Accessioned -> In Analysis -> QC Pending -> Completed
+        transitions = [
+          [accessioned, in_analysis],
+          [in_analysis, qc_pending],
+          [qc_pending, completed],
+          # Allow going back for corrections
+          [in_analysis, accessioned],
+          [qc_pending, in_analysis]
+        ]
+
+        roles.each do |role|
+          transitions.each do |old_status, new_status|
+            next if WorkflowTransition.exists?(
+              tracker_id: tracker.id,
+              role_id: role.id,
+              old_status_id: old_status.id,
+              new_status_id: new_status.id
+            )
+
+            WorkflowTransition.create!(
+              tracker_id: tracker.id,
+              role_id: role.id,
+              old_status_id: old_status.id,
+              new_status_id: new_status.id
+            )
+          end
+        end
+
+        Rails.logger.info "[RedmineLabFlow] Setup workflow for tracker: #{tracker.name}"
+      end
+
+      def setup_daily_log_workflow(tracker, finalized)
+        return unless tracker && finalized
+
+        # Get the In Progress status for Daily Log
+        in_progress_status = IssueStatus.find_by(name: I18n.t(DAILY_LOG_INITIAL_STATUS_KEY))
+        return unless in_progress_status
+
+        roles = Role.all
+
+        # Daily Log: In Progress -> Finalized
+        roles.each do |role|
+          next if WorkflowTransition.exists?(
+            tracker_id: tracker.id,
+            role_id: role.id,
+            old_status_id: in_progress_status.id,
+            new_status_id: finalized.id
+          )
+
+          WorkflowTransition.create!(
+            tracker_id: tracker.id,
+            role_id: role.id,
+            old_status_id: in_progress_status.id,
+            new_status_id: finalized.id
+          )
+        end
+
+        Rails.logger.info "[RedmineLabFlow] Setup workflow for tracker: #{tracker.name}"
       end
 
       def create_custom_fields

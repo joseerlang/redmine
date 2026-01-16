@@ -7,10 +7,10 @@ class LabReagentsController < ApplicationController
   before_action :require_admin
   before_action :find_reagent, only: %i[edit update destroy]
 
+  helper :settings
+
   def index
-    @reagents = LabReagent.sorted
-    @expired_count = LabReagent.expired.count
-    @expiring_soon_count = LabReagent.expiring_soon.count
+    redirect_to plugin_settings_path
   end
 
   def new
@@ -24,7 +24,7 @@ class LabReagentsController < ApplicationController
     if @reagent.save
       update_lot_number_field_values
       flash[:notice] = l(:notice_successful_create)
-      redirect_to lab_reagents_path
+      redirect_to plugin_settings_path
     else
       render :new
     end
@@ -39,7 +39,7 @@ class LabReagentsController < ApplicationController
     if @reagent.save
       update_lot_number_field_values
       flash[:notice] = l(:notice_successful_update)
-      redirect_to lab_reagents_path
+      redirect_to plugin_settings_path
     else
       render :edit
     end
@@ -49,10 +49,14 @@ class LabReagentsController < ApplicationController
     @reagent.destroy
     update_lot_number_field_values
     flash[:notice] = l(:notice_successful_delete)
-    redirect_to lab_reagents_path
+    redirect_to plugin_settings_path
   end
 
   private
+
+  def plugin_settings_path
+    "/settings/plugin/redmine_lab_flow?tab=lab_reagents"
+  end
 
   def find_reagent
     @reagent = LabReagent.find(params[:id])

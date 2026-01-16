@@ -1,0 +1,5 @@
+<p>
+  <%= label_tag 'settings_units', l(:label_configurable_units) %><br>
+  <%= text_area_tag 'settings[units]', settings['units'], rows: 10, cols: 30, id: 'settings_units' %>
+  <em class="info"><%= l(:text_units_help) %></em>
+</p>

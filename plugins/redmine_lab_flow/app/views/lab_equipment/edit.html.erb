@@ -2,8 +2,9 @@
 
 <%= form_tag(lab_equipment_path(@equipment_item), method: :patch) do %>
   <%= render partial: 'form' %>
-  <p>
+
+  <p class="buttons">
     <%= submit_tag l(:button_save) %>
-    <%= link_to l(:button_cancel), lab_equipment_index_path %>
+    <%= link_to l(:button_cancel), "/settings/plugin/redmine_lab_flow?tab=lab_equipment" %>
   </p>
 <% end %>
