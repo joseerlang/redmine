@@ -45,6 +45,20 @@ module RedmineLabFlow
     # Finalized status name
     FINALIZED_STATUS_KEY = :label_status_finalized
 
+    # Phase 3: Workflow statuses for Sample/Assay lifecycle
+    WORKFLOW_STATUSES = [
+      { key: :label_status_accessioned, is_closed: false },
+      { key: :label_status_in_analysis, is_closed: false },
+      { key: :label_status_qc_pending, is_closed: false },
+      { key: :label_status_completed, is_closed: true }
+    ].freeze
+
+    # Phase 3: Additional fields for inventory management
+    INVENTORY_FIELDS = [
+      { key: :field_lot_number, format: 'list', values: :reagent_lots, filter: true, trackers: %i[label_assay] },
+      { key: :field_equipment_id, format: 'list', values: :equipment_list, filter: true, trackers: %i[label_assay label_sample] }
+    ].freeze
+
     class << self
       def install
         return unless tables_exist?
@@ -52,7 +66,9 @@ module RedmineLabFlow
         ActiveRecord::Base.transaction do
           create_trackers
           create_finalized_status
+          create_workflow_statuses
           create_custom_fields
+          create_inventory_fields
           associate_fields_with_trackers
         end
       rescue StandardError => e
@@ -70,10 +86,39 @@ module RedmineLabFlow
         Tracker.find_by(name: I18n.t(:label_daily_log))
       end
 
+      # Returns the Assay tracker, or nil if not found
+      def assay_tracker
+        Tracker.find_by(name: I18n.t(:label_assay))
+      end
+
+      # Returns the Sample tracker, or nil if not found
+      def sample_tracker
+        Tracker.find_by(name: I18n.t(:label_sample))
+      end
+
+      # Returns the Completed status, or nil if not found
+      def completed_status
+        IssueStatus.find_by(name: I18n.t(:label_status_completed))
+      end
+
       private
 
       def tables_exist?
         Tracker.table_exists? && IssueCustomField.table_exists? && IssueStatus.table_exists?
+      end
+
+      def create_workflow_statuses
+        WORKFLOW_STATUSES.each do |status_def|
+          name = I18n.t(status_def[:key])
+          next if IssueStatus.exists?(name: name)
+
+          IssueStatus.create!(
+            name: name,
+            is_closed: status_def[:is_closed],
+            position: IssueStatus.maximum(:position).to_i + 1
+          )
+          Rails.logger.info "[RedmineLabFlow] Created workflow status: #{name}"
+        end
       end
 
       def create_finalized_status
@@ -110,6 +155,59 @@ module RedmineLabFlow
         create_fields_for_tracker(SAMPLE_FIELDS)
         create_fields_for_tracker(ASSAY_FIELDS)
         create_fields_for_tracker(DAILY_LOG_FIELDS)
+      end
+
+      def create_inventory_fields
+        return unless LabReagent.table_exists? && LabEquipment.table_exists?
+
+        INVENTORY_FIELDS.each do |field_def|
+          name = I18n.t(field_def[:key])
+          next if IssueCustomField.exists?(name: name)
+
+          attrs = {
+            name: name,
+            field_format: field_def[:format],
+            is_required: false,
+            is_for_all: true,
+            is_filter: field_def[:filter] || false
+          }
+
+          # Handle dynamic list values
+          if field_def[:format] == 'list'
+            attrs[:possible_values] = case field_def[:values]
+                                      when :reagent_lots
+                                        reagent_lot_values
+                                      when :equipment_list
+                                        equipment_values
+                                      else
+                                        []
+                                      end
+          end
+
+          field = IssueCustomField.create!(attrs)
+          Rails.logger.info "[RedmineLabFlow] Created inventory field: #{name}"
+
+          # Associate with specific trackers
+          field_def[:trackers]&.each do |tracker_key|
+            tracker = Tracker.find_by(name: I18n.t(tracker_key))
+            next unless tracker
+            next if tracker.custom_fields.include?(field)
+
+            tracker.custom_fields << field
+          end
+        end
+      end
+
+      def reagent_lot_values
+        return [] unless LabReagent.table_exists?
+
+        LabReagent.active.sorted.map(&:display_name)
+      end
+
+      def equipment_values
+        return [] unless LabEquipment.table_exists?
+
+        LabEquipment.active.sorted.map(&:display_name)
       end
 
       def create_fields_for_tracker(fields_config)

@@ -8,8 +8,12 @@ module RedmineLabFlow
       # Prepend the module to override attributes_editable?
       prepend InstanceMethods
 
-      # Validate reason for change on Daily Logs
+      # Validate reason for change on Daily Logs and Assays
       validate :validate_reason_for_change_on_daily_log, on: :update
+      validate :validate_reason_for_change_on_assay, on: :update
+
+      # Validate expired reagents on Assay completion
+      validate :validate_reagent_not_expired_on_completion
     end
 
     module InstanceMethods
@@ -46,6 +50,24 @@ module RedmineLabFlow
         tracker_id == daily_log_tracker.id
       end
 
+      # Check if this issue is an Assay
+      def assay?
+        assay_tracker = RedmineLabFlow::Setup.assay_tracker
+        return false unless assay_tracker
+
+        tracker_id == assay_tracker.id
+      end
+
+      # Check if issue is being moved to Completed status
+      def completing?
+        return false unless status_id_changed?
+
+        completed_status = RedmineLabFlow::Setup.completed_status
+        return false unless completed_status
+
+        status_id == completed_status.id
+      end
+
       # Check if the user can edit a finalized issue
       def finalized_editable_by?(user)
         return false unless user&.admin?
@@ -72,6 +94,47 @@ module RedmineLabFlow
         # Check if notes are provided
         if journal.notes.blank?
           errors.add(:base, I18n.t(:error_reason_for_change_required))
+        end
+      end
+
+      # Validate that Assays require a reason for change (notes)
+      def validate_reason_for_change_on_assay
+        return unless assay?
+        return if new_record?
+
+        # Only validate if there's a journal being created with changes
+        journal = current_journal
+        return unless journal
+
+        # Check if there are actual changes being made
+        has_changes = changed? || journal.details.present?
+        return unless has_changes
+
+        # Check if notes are provided
+        if journal.notes.blank?
+          errors.add(:base, I18n.t(:error_reason_for_change_required_assay))
+        end
+      end
+
+      # Validate that Assays cannot be completed with expired reagents
+      def validate_reagent_not_expired_on_completion
+        return unless assay?
+        return unless completing?
+        return unless LabReagent.table_exists?
+
+        # Find the Lot Number custom field
+        lot_field = IssueCustomField.find_by(name: I18n.t(:field_lot_number))
+        return unless lot_field
+
+        lot_value = custom_field_value(lot_field)
+        return if lot_value.blank?
+
+        # Find the reagent by lot display name
+        reagent = LabReagent.active.find { |r| r.display_name == lot_value }
+        return unless reagent
+
+        if reagent.expired?
+          errors.add(:base, I18n.t(:error_reagent_expired, lot: reagent.lot_number, expiration: reagent.expiration_date))
         end
       end
     end

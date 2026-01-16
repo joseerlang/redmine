@@ -1,0 +1,9 @@
+<h2><%= l(:label_reagent_edit) %></h2>
+
+<%= form_tag(lab_reagent_path(@reagent), method: :patch) do %>
+  <%= render partial: 'form' %>
+  <p>
+    <%= submit_tag l(:button_save) %>
+    <%= link_to l(:button_cancel), lab_reagents_path %>
+  </p>
+<% end %>

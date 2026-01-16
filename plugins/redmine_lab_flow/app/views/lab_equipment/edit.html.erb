@@ -1,0 +1,9 @@
+<h2><%= l(:label_equipment_edit) %></h2>
+
+<%= form_tag(lab_equipment_path(@equipment_item), method: :patch) do %>
+  <%= render partial: 'form' %>
+  <p>
+    <%= submit_tag l(:button_save) %>
+    <%= link_to l(:button_cancel), lab_equipment_index_path %>
+  </p>
+<% end %>

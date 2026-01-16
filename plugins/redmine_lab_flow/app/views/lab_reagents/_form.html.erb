@@ -1,0 +1,27 @@
+<%= labelled_fields_for :lab_reagent, @reagent do |f| %>
+  <p>
+    <%= f.text_field :name, size: 50, required: true %>
+  </p>
+  <p>
+    <%= f.text_field :lot_number, size: 30, required: true %>
+  </p>
+  <p>
+    <%= f.date_field :expiration_date %>
+  </p>
+  <p>
+    <%= f.text_field :quantity, size: 10 %>
+    <%= f.text_field :unit, size: 10 %>
+  </p>
+  <p>
+    <%= f.text_field :supplier, size: 50 %>
+  </p>
+  <p>
+    <%= f.text_field :catalog_number, size: 30 %>
+  </p>
+  <p>
+    <%= f.text_field :storage_conditions, size: 50 %>
+  </p>
+  <p>
+    <%= f.check_box :active %>
+  </p>
+<% end %>

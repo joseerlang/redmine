@@ -1,0 +1,29 @@
+<%= labelled_fields_for :lab_equipment, @equipment_item do |f| %>
+  <p>
+    <%= f.text_field :name, size: 50, required: true %>
+  </p>
+  <p>
+    <%= f.text_field :serial_number, size: 30 %>
+  </p>
+  <p>
+    <%= f.text_field :model, size: 30 %>
+  </p>
+  <p>
+    <%= f.text_field :manufacturer, size: 50 %>
+  </p>
+  <p>
+    <%= f.date_field :calibration_due %>
+  </p>
+  <p>
+    <%= f.date_field :last_calibration %>
+  </p>
+  <p>
+    <%= f.text_field :location, size: 50 %>
+  </p>
+  <p>
+    <%= f.select :status, LabEquipment::STATUSES.map { |s| [l("label_equipment_status_#{s}", default: s.humanize), s] } %>
+  </p>
+  <p>
+    <%= f.check_box :active %>
+  </p>
+<% end %>

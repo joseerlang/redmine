@@ -1,0 +1,52 @@
+<h2><%= l(:label_lab_equipment) %></h2>
+
+<% if @calibration_overdue_count > 0 || @calibration_due_soon_count > 0 %>
+<div class="flash warning">
+  <% if @calibration_overdue_count > 0 %>
+    <strong><%= l(:label_calibration_overdue_count, count: @calibration_overdue_count) %></strong><br>
+  <% end %>
+  <% if @calibration_due_soon_count > 0 %>
+    <%= l(:label_calibration_due_soon_count, count: @calibration_due_soon_count) %>
+  <% end %>
+</div>
+<% end %>
+
+<table class="list">
+  <thead>
+    <tr>
+      <th><%= l(:field_name) %></th>
+      <th><%= l(:field_serial_number) %></th>
+      <th><%= l(:field_model) %></th>
+      <th><%= l(:field_calibration_due) %></th>
+      <th><%= l(:field_location) %></th>
+      <th><%= l(:field_status) %></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @equipment.each do |item| %>
+    <tr class="<%= item.calibration_overdue? ? 'calibration-overdue' : (item.calibration_due_soon? ? 'calibration-due-soon' : '') %>">
+      <td><%= item.name %></td>
+      <td><%= item.serial_number %></td>
+      <td><%= item.model %></td>
+      <td><%= format_date(item.calibration_due) %></td>
+      <td><%= item.location %></td>
+      <td>
+        <% if item.calibration_overdue? %>
+          <span class="badge badge-expired"><%= l(:label_calibration_overdue) %></span>
+        <% elsif item.calibration_due_soon? %>
+          <span class="badge badge-warning"><%= l(:label_calibration_due_soon) %></span>
+        <% else %>
+          <span class="badge badge-valid"><%= item.status_label %></span>
+        <% end %>
+      </td>
+      <td class="buttons">
+        <%= link_to l(:button_edit), edit_lab_equipment_path(item), class: 'icon icon-edit' %>
+        <%= link_to l(:button_delete), lab_equipment_path(item), method: :delete, data: { confirm: l(:text_are_you_sure) }, class: 'icon icon-del' %>
+      </td>
+    </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<p><%= link_to l(:label_equipment_new), new_lab_equipment_path, class: 'icon icon-add' %></p>

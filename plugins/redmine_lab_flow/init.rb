@@ -10,7 +10,7 @@ Redmine::Plugin.register :redmine_lab_flow do
   name 'Redmine LabFlow'
   author 'Jose'
   description 'ISA-compliant laboratory management for Redmine with ELN integration'
-  version '0.2.0'
+  version '0.3.0'
   requires_redmine version_or_higher: '6.0.0'
 
   # Plugin settings (configurable units)
@@ -42,6 +42,20 @@ Redmine::Plugin.register :redmine_lab_flow do
        caption: :label_procedure_templates,
        html: { class: 'icon icon-list' },
        after: :custom_fields
+
+  # Admin menu for lab reagents
+  menu :admin_menu, :lab_reagents,
+       { controller: 'lab_reagents', action: 'index' },
+       caption: :label_lab_reagents,
+       html: { class: 'icon icon-package' },
+       after: :procedure_templates
+
+  # Admin menu for lab equipment
+  menu :admin_menu, :lab_equipment,
+       { controller: 'lab_equipment', action: 'index' },
+       caption: :label_lab_equipment,
+       html: { class: 'icon icon-server-authentication' },
+       after: :lab_reagents
 end
 
 # Register project settings tab and apply patches

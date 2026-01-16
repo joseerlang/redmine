@@ -6,6 +6,10 @@ get 'projects/:project_id/lab_flow', to: 'lab_flow#index', as: 'project_lab_flow
 # Admin procedure templates CRUD
 resources :procedure_templates
 
+# Phase 3: Inventory management
+resources :lab_reagents
+resources :lab_equipment
+
 # Project-level wiki templates API (JSON)
 scope 'projects/:project_id' do
   get 'wiki_templates', to: 'wiki_templates#index', as: 'wiki_templates'
