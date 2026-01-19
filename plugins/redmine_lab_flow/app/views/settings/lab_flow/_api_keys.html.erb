@@ -27,9 +27,9 @@
               <td><%= api_key.description %></td>
               <td>
                 <code class="api-key-display"><%= api_key.masked_key %></code>
-                <button type="button" class="icon icon-copy copy-api-key"
+                <button type="button" class="copy-api-key"
                         data-key="<%= api_key.api_key %>"
-                        title="<%= I18n.t(:button_copy) %>"></button>
+                        title="<%= I18n.t(:button_copy) %>">📋 Copy</button>
               </td>
               <td>
                 <% if api_key.active %>
@@ -64,22 +64,22 @@
     <hr>
 
     <h4><%= I18n.t(:label_new_api_key) %></h4>
-    <%= form_tag lab_flow_api_keys_path, method: :post, class: 'api-key-form' do %>
+    <div class="api-key-form">
       <p>
-        <%= label_tag 'lab_flow_api_key_project_id', I18n.t(:field_project) %>
-        <%= select_tag 'lab_flow_api_key[project_id]',
+        <%= label_tag 'new_api_key_project_id', I18n.t(:field_project) %>
+        <%= select_tag 'new_api_key_project_id',
             options_from_collection_for_select(Project.active.sorted, :id, :name),
             include_blank: true,
-            required: true %>
+            id: 'new_api_key_project_id' %>
       </p>
       <p>
-        <%= label_tag 'lab_flow_api_key_description', I18n.t(:field_description) %>
-        <%= text_field_tag 'lab_flow_api_key[description]', '', size: 50 %>
+        <%= label_tag 'new_api_key_description', I18n.t(:field_description) %>
+        <%= text_field_tag 'new_api_key_description', '', size: 50, id: 'new_api_key_description' %>
       </p>
       <p>
-        <%= submit_tag I18n.t(:button_create), class: 'btn btn-primary' %>
+        <button type="button" id="create-api-key-btn" class="btn btn-primary"><%= I18n.t(:button_create) %></button>
       </p>
-    <% end %>
+    </div>
 
     <hr>
 
@@ -127,10 +127,17 @@
   }
 
   .copy-api-key {
-    background: none;
-    border: none;
+    background: #f5f5f5;
+    border: 1px solid #ccc;
+    border-radius: 3px;
     cursor: pointer;
-    margin-left: 5px;
+    margin-left: 8px;
+    padding: 2px 8px;
+    font-size: 11px;
+  }
+
+  .copy-api-key:hover {
+    background: #e5e5e5;
   }
 
   .badge {
@@ -182,5 +189,41 @@
         });
       });
     });
+
+    // Create API key via AJAX
+    var createBtn = document.getElementById('create-api-key-btn');
+    if (createBtn) {
+      createBtn.addEventListener('click', function() {
+        var projectId = document.getElementById('new_api_key_project_id').value;
+        var description = document.getElementById('new_api_key_description').value;
+
+        if (!projectId) {
+          alert('<%= I18n.t(:field_project) %> is required');
+          return;
+        }
+
+        var csrfToken = document.querySelector('meta[name="csrf-token"]');
+
+        fetch('<%= lab_flow_api_keys_path %>', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'text/html',
+            'X-CSRF-Token': csrfToken ? csrfToken.content : ''
+          },
+          body: 'lab_flow_api_key[project_id]=' + encodeURIComponent(projectId) +
+                '&lab_flow_api_key[description]=' + encodeURIComponent(description)
+        })
+        .then(function(response) {
+          // Reload the page to show the new key
+          window.location.href = '<%= plugin_settings_path('redmine_lab_flow', tab: 'api_keys') %>';
+        })
+        .catch(function(error) {
+          console.error('Error creating API key:', error);
+          alert('Error creating API key');
+        });
+      });
+    }
   });
 </script>

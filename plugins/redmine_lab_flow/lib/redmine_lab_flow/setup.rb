@@ -20,6 +20,7 @@ module RedmineLabFlow
 
     # Assay tracker fields
     ASSAY_FIELDS = [
+      { key: :field_internal_id, format: 'string', required: true, filter: true, searchable: true },
       { key: :field_measured_value, format: 'float', required: true, filter: true },
       { key: :field_unit, format: 'list', values: :configurable, filter: true },
       { key: :field_method, format: 'string', filter: true, searchable: true },
