@@ -15,13 +15,13 @@ class LabFlowSignaturesController < ApplicationController
 
     # Validate required parameters
     if password.blank? || meaning.blank?
-      render json: { success: false, error: I18n.t(:error_signature_fields_required) }
+      render_json_response(success: false, error: I18n.t(:error_signature_fields_required))
       return
     end
 
     # Validate signature meaning
     unless LabFlowElectronicSignature::SIGNATURE_MEANINGS.include?(meaning)
-      render json: { success: false, error: I18n.t(:error_invalid_signature_meaning) }
+      render_json_response(success: false, error: I18n.t(:error_invalid_signature_meaning))
       return
     end
 
@@ -40,16 +40,13 @@ class LabFlowSignaturesController < ApplicationController
     )
 
     if signature
-      render json: {
+      render_json_response(
         success: true,
         signature_id: signature.id,
         message: I18n.t(:notice_signature_verified)
-      }
+      )
     else
-      render json: {
-        success: false,
-        error: I18n.t(:error_invalid_password)
-      }
+      render_json_response(success: false, error: I18n.t(:error_invalid_password))
     end
   end
 
@@ -71,9 +68,12 @@ class LabFlowSignaturesController < ApplicationController
 
   def find_issue
     @issue = Issue.find(params[:issue_id])
-    render_403 unless User.current.allowed_to?(:edit_issues, @issue.project)
+    unless User.current.allowed_to?(:edit_issues, @issue.project)
+      render json: { success: false, error: I18n.t(:notice_not_authorized) }, status: :forbidden
+      return
+    end
   rescue ActiveRecord::RecordNotFound
-    render json: { success: false, error: I18n.t(:error_issue_not_found) }
+    render json: { success: false, error: I18n.t(:error_issue_not_found) }, status: :not_found
   end
 
   def signatures_json
@@ -86,6 +86,14 @@ class LabFlowSignaturesController < ApplicationController
         old_status: sig.old_status,
         new_status: sig.new_status
       }
+    end
+  end
+
+  def render_json_response(data)
+    respond_to do |format|
+      format.html { render json: data }
+      format.json { render json: data }
+      format.any { render json: data, content_type: 'application/json' }
     end
   end
 end

@@ -146,7 +146,8 @@ en:
   label_status_verified: "Verified"
 
   # Phase 4: Electronic Signatures
-  label_attestation: "Attestation"
+  label_attestation: "Electronic Signature"
+  label_please_select: "--- Please select ---"
   label_signature_meaning: "Signature Meaning"
   label_signature_meaning_authorship: "Authorship"
   label_signature_meaning_review: "Review"

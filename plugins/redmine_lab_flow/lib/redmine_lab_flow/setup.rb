@@ -157,8 +157,31 @@ module RedmineLabFlow
           Rails.logger.info "[RedmineLabFlow] Created workflow status: #{name}"
         end
 
+        # Ensure correct ordering of workflow statuses
+        reorder_workflow_statuses
+
         # Create initial status for Daily Log if needed
         create_daily_log_initial_status
+      end
+
+      def reorder_workflow_statuses
+        # Get the position of Accessioned as our starting point
+        accessioned = IssueStatus.find_by(name: I18n.t(:label_status_accessioned))
+        return unless accessioned
+
+        base_position = accessioned.position
+
+        # Reorder all workflow statuses in the correct sequence
+        WORKFLOW_STATUSES.each_with_index do |status_def, index|
+          status = IssueStatus.find_by(name: I18n.t(status_def[:key]))
+          next unless status
+
+          new_position = base_position + index
+          if status.position != new_position
+            status.update_column(:position, new_position)
+            Rails.logger.info "[RedmineLabFlow] Reordered status '#{status.name}' to position #{new_position}"
+          end
+        end
       end
 
       def create_daily_log_initial_status
@@ -261,7 +284,9 @@ module RedmineLabFlow
 
         # Define transitions: Accessioned -> In Analysis -> QC Pending -> Verified -> Completed
         # Phase 4: Added Verified status between QC Pending and Completed
+        # Note: nil as old_status means "new issue" (old_status_id = 0)
         transitions = [
+          [nil, accessioned],  # New issue -> Accessioned (required for creating new issues)
           [accessioned, in_analysis],
           [in_analysis, qc_pending],
           [qc_pending, verified],
@@ -272,25 +297,28 @@ module RedmineLabFlow
           [in_analysis, accessioned],
           [qc_pending, in_analysis],
           [verified, qc_pending]
-        ].compact
+        ]
 
         # Only include verified transitions if verified status exists
-        transitions = transitions.reject { |t| t.include?(nil) }
+        transitions = transitions.reject { |old_s, new_s| new_s.nil? || (old_s && old_s == verified && verified.nil?) }
 
         roles.each do |role|
           transitions.each do |old_status, new_status|
-            next unless old_status && new_status
+            next unless new_status
+            # old_status can be nil, which means "new issue" (old_status_id = 0)
+            old_status_id = old_status&.id || 0
+
             next if WorkflowTransition.exists?(
               tracker_id: tracker.id,
               role_id: role.id,
-              old_status_id: old_status.id,
+              old_status_id: old_status_id,
               new_status_id: new_status.id
             )
 
             WorkflowTransition.create!(
               tracker_id: tracker.id,
               role_id: role.id,
-              old_status_id: old_status.id,
+              old_status_id: old_status_id,
               new_status_id: new_status.id
             )
           end
@@ -308,21 +336,33 @@ module RedmineLabFlow
 
         roles = Role.all
 
-        # Daily Log: In Progress -> Finalized
-        roles.each do |role|
-          next if WorkflowTransition.exists?(
-            tracker_id: tracker.id,
-            role_id: role.id,
-            old_status_id: in_progress_status.id,
-            new_status_id: finalized.id
-          )
+        # Daily Log workflow transitions:
+        # - New issue -> In Progress (required for creating new issues)
+        # - In Progress -> Finalized
+        transitions = [
+          [nil, in_progress_status],  # New issue -> In Progress
+          [in_progress_status, finalized]
+        ]
 
-          WorkflowTransition.create!(
-            tracker_id: tracker.id,
-            role_id: role.id,
-            old_status_id: in_progress_status.id,
-            new_status_id: finalized.id
-          )
+        roles.each do |role|
+          transitions.each do |old_status, new_status|
+            next unless new_status
+            old_status_id = old_status&.id || 0
+
+            next if WorkflowTransition.exists?(
+              tracker_id: tracker.id,
+              role_id: role.id,
+              old_status_id: old_status_id,
+              new_status_id: new_status.id
+            )
+
+            WorkflowTransition.create!(
+              tracker_id: tracker.id,
+              role_id: role.id,
+              old_status_id: old_status_id,
+              new_status_id: new_status.id
+            )
+          end
         end
 
         Rails.logger.info "[RedmineLabFlow] Setup workflow for tracker: #{tracker.name}"

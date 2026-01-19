@@ -47,59 +47,78 @@
     position: fixed;
     top: 0;
     left: 0;
+    right: 0;
+    bottom: 0;
     width: 100%;
     height: 100%;
     z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lab-flow-modal.lab-flow-modal-hidden {
+    display: none;
   }
 
   .lab-flow-modal-overlay {
     position: absolute;
     top: 0;
     left: 0;
+    right: 0;
+    bottom: 0;
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
+    cursor: pointer;
   }
 
   .lab-flow-modal-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    position: relative;
     background: #fff;
-    border-radius: 6px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    min-width: 400px;
-    max-width: 500px;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    width: 450px;
+    max-width: 90vw;
+    z-index: 10001;
+    margin: auto;
   }
 
   .lab-flow-modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
-    border-bottom: 1px solid #dee2e6;
-    background-color: #f8f9fa;
-    border-radius: 6px 6px 0 0;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #f5f5f5;
+    border-radius: 8px 8px 0 0;
   }
 
   .lab-flow-modal-header h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: 16px;
+    font-weight: 600;
     color: #333;
   }
 
   .lab-flow-modal-close {
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: 20px;
     cursor: pointer;
     color: #666;
     padding: 0;
     line-height: 1;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
   }
 
   .lab-flow-modal-close:hover {
+    background-color: #e0e0e0;
     color: #333;
   }
 
@@ -109,82 +128,138 @@
 
   .lab-flow-modal-help {
     color: #666;
-    margin-bottom: 20px;
-    font-size: 14px;
+    margin: 0 0 20px 0;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: center;
   }
 
   .lab-flow-modal-footer {
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    padding: 15px 20px;
-    border-top: 1px solid #dee2e6;
-    background-color: #f8f9fa;
-    border-radius: 0 0 6px 6px;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 16px 20px;
+    border-top: 1px solid #e0e0e0;
+    background-color: #f5f5f5;
+    border-radius: 0 0 8px 8px;
   }
 
-  .lab-flow-signature-form label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 5px;
+  .lab-flow-signature-form {
+    margin: 0;
+  }
+
+  .lab-flow-form-group {
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .lab-flow-form-group:last-of-type {
+    margin-bottom: 0;
+  }
+
+  .lab-flow-signature-form .lab-flow-form-group label {
+    display: block !important;
+    float: none !important;
+    width: auto !important;
+    text-align: left !important;
+    font-weight: 600;
+    margin-bottom: 6px;
+    margin-left: 0 !important;
+    padding: 0 !important;
     color: #333;
+    font-size: 13px;
   }
 
-  .lab-flow-signature-form p {
-    margin-bottom: 15px;
+  .lab-flow-signature-form .lab-flow-form-group label .required {
+    color: #c00;
   }
 
-  .lab-flow-input,
-  .lab-flow-select {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ced4da;
+  .lab-flow-signature-form .lab-flow-input {
+    width: 100% !important;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 14px;
     box-sizing: border-box;
+    background-color: #fff;
+    color: #333;
+    margin: 0 !important;
   }
 
-  .lab-flow-input:focus,
-  .lab-flow-select:focus {
-    border-color: #80bdff;
-    outline: 0;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  .lab-flow-signature-form .lab-flow-select {
+    width: 100% !important;
+    height: auto !important;
+    padding: 10px 12px !important;
+    border: 1px solid #ccc !important;
+    border-radius: 4px;
+    font-size: 14px !important;
+    box-sizing: border-box;
+    background-color: #fff !important;
+    color: #333 !important;
+    margin: 0 !important;
+    cursor: pointer;
+    line-height: normal !important;
+  }
+
+  .lab-flow-signature-form .lab-flow-select option {
+    color: #333 !important;
+    background-color: #fff !important;
+  }
+
+  .lab-flow-signature-form .lab-flow-input:focus,
+  .lab-flow-signature-form .lab-flow-select:focus {
+    border-color: #628db6;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(98, 141, 182, 0.2);
   }
 
   .lab-flow-btn {
     padding: 8px 16px;
-    border: none;
+    border: 1px solid transparent;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.15s ease-in-out;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1;
+    vertical-align: middle;
   }
 
   .lab-flow-btn-primary {
-    background-color: #007bff;
+    background-color: #628db6;
+    border-color: #628db6;
     color: #fff;
   }
 
   .lab-flow-btn-primary:hover {
-    background-color: #0056b3;
+    background-color: #507ba3;
+    border-color: #507ba3;
   }
 
   .lab-flow-btn-secondary {
-    background-color: #6c757d;
-    color: #fff;
+    background-color: #fff;
+    border-color: #ccc;
+    color: #333;
   }
 
   .lab-flow-btn-secondary:hover {
-    background-color: #545b62;
+    background-color: #f5f5f5;
+    border-color: #999;
   }
 
   .lab-flow-error {
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-    color: #721c24;
-    padding: 10px;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    padding: 10px 12px;
     border-radius: 4px;
-    margin-top: 10px;
+    margin-top: 16px;
+    font-size: 13px;
   }
 
   /* Signature badge for signed issues */

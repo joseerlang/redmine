@@ -1,6 +1,7 @@
 <%# Phase 4: Electronic Signature Modal for status changes requiring attestation %>
-<% if @issue && (@issue.assay? || @issue.sample?) %>
-<div id="lab-flow-signature-modal" class="lab-flow-modal" style="display: none;">
+<%# Only show for existing issues (not new ones) since signatures are only needed for status changes %>
+<% if @issue && !@issue.new_record? && (@issue.assay? || @issue.sample?) %>
+<div id="lab-flow-signature-modal" class="lab-flow-modal lab-flow-modal-hidden">
   <div class="lab-flow-modal-overlay"></div>
   <div class="lab-flow-modal-content">
     <div class="lab-flow-modal-header">
@@ -8,35 +9,35 @@
       <button type="button" class="lab-flow-modal-close">&times;</button>
     </div>
     <div class="lab-flow-modal-body">
-      <p class="lab-flow-modal-help"><%= I18n.t(:text_signature_modal_help) %></p>
+      <div class="lab-flow-modal-help"><%= I18n.t(:text_signature_modal_help) %></div>
 
       <div class="lab-flow-signature-form">
         <%= hidden_field_tag 'signature_issue_id', @issue.id, id: 'signature_issue_id' %>
 
-        <p>
+        <div class="lab-flow-form-group">
           <label for="signature_password"><%= I18n.t(:field_password) %> <span class="required">*</span></label>
-          <input type="password" name="signature_password" id="signature_password" class="lab-flow-input" autocomplete="current-password" required />
-        </p>
+          <input type="password" name="signature_password" id="signature_password" class="lab-flow-input" autocomplete="current-password" />
+        </div>
 
-        <p>
+        <div class="lab-flow-form-group">
           <label for="signature_meaning"><%= I18n.t(:label_signature_meaning) %> <span class="required">*</span></label>
-          <select name="signature_meaning" id="signature_meaning" class="lab-flow-select" required>
+          <select name="signature_meaning" id="signature_meaning" class="lab-flow-select">
             <option value=""><%= I18n.t(:label_please_select) %></option>
             <option value="authorship"><%= I18n.t(:label_signature_meaning_authorship) %></option>
             <option value="review"><%= I18n.t(:label_signature_meaning_review) %></option>
             <option value="approval"><%= I18n.t(:label_signature_meaning_approval) %></option>
           </select>
-        </p>
+        </div>
 
         <div id="signature-error" class="lab-flow-error" style="display: none;"></div>
       </div>
     </div>
     <div class="lab-flow-modal-footer">
-      <button type="button" class="lab-flow-btn lab-flow-btn-secondary" id="signature-cancel">
-        <%= I18n.t(:button_cancel) %>
-      </button>
       <button type="button" class="lab-flow-btn lab-flow-btn-primary" id="signature-submit">
         <%= I18n.t(:button_submit) %>
+      </button>
+      <button type="button" class="lab-flow-btn lab-flow-btn-secondary" id="signature-cancel">
+        <%= I18n.t(:button_cancel) %>
       </button>
     </div>
   </div>
@@ -46,30 +47,52 @@
   // Phase 4: Electronic Signature handling
   (function() {
     var signatureRequiredStatuses = <%= raw RedmineLabFlow::Setup::SIGNATURE_REQUIRED_STATUSES.map { |k| I18n.t(k) }.to_json %>;
-    var verifyUrl = '<%= url_for(controller: 'lab_flow_signatures', action: 'verify', format: :json) %>';
-    var originalFormSubmit = null;
+    var verifyUrl = '<%= lab_flow_verify_signature_path %>';
     var pendingStatusChange = null;
 
     function isSignatureRequired(newStatusName) {
       return signatureRequiredStatuses.indexOf(newStatusName) !== -1;
     }
 
+    function getModal() {
+      return document.getElementById('lab-flow-signature-modal');
+    }
+
     function showModal() {
-      document.getElementById('lab-flow-signature-modal').style.display = 'block';
-      document.getElementById('signature_password').focus();
+      var modal = getModal();
+      if (modal) {
+        modal.classList.remove('lab-flow-modal-hidden');
+        var passwordField = document.getElementById('signature_password');
+        if (passwordField) {
+          setTimeout(function() { passwordField.focus(); }, 100);
+        }
+      }
     }
 
     function hideModal() {
-      document.getElementById('lab-flow-signature-modal').style.display = 'none';
-      document.getElementById('signature_password').value = '';
-      document.getElementById('signature_meaning').value = '';
-      document.getElementById('signature-error').style.display = 'none';
+      var modal = getModal();
+      if (modal) {
+        modal.classList.add('lab-flow-modal-hidden');
+      }
+      var passwordField = document.getElementById('signature_password');
+      if (passwordField) passwordField.value = '';
+      var meaningField = document.getElementById('signature_meaning');
+      if (meaningField) meaningField.value = '';
+      var errorDiv = document.getElementById('signature-error');
+      if (errorDiv) errorDiv.style.display = 'none';
+    }
+
+    function isModalVisible() {
+      var modal = getModal();
+      return modal && !modal.classList.contains('lab-flow-modal-hidden');
     }
 
     function showError(message) {
       var errorDiv = document.getElementById('signature-error');
-      errorDiv.textContent = message;
-      errorDiv.style.display = 'block';
+      if (errorDiv) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+      }
     }
 
     function verifySignature(callback) {
@@ -82,33 +105,73 @@
         return;
       }
 
-      var xhr = new XMLHttpRequest();
-      xhr.open('POST', verifyUrl, true);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.setRequestHeader('X-CSRF-Token', document.querySelector('meta[name="csrf-token"]').content);
+      var csrfToken = document.querySelector('meta[name="csrf-token"]');
+      var csrfParam = document.querySelector('meta[name="csrf-param"]');
 
-      xhr.onreadystatechange = function() {
-        if (xhr.readyState === 4) {
-          if (xhr.status === 200) {
-            var response = JSON.parse(xhr.responseText);
-            if (response.success) {
-              hideModal();
-              callback(true);
-            } else {
-              showError(response.error || '<%= I18n.t(:error_invalid_password) %>');
+      // Use form data instead of JSON to properly send session cookies
+      var formData = new FormData();
+      formData.append('issue_id', issueId);
+      formData.append('password', password);
+      formData.append('signature_meaning', meaning);
+      formData.append('new_status', pendingStatusChange);
+      if (csrfToken && csrfParam) {
+        formData.append(csrfParam.content, csrfToken.content);
+      }
+
+      fetch(verifyUrl, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-Token': csrfToken ? csrfToken.content : ''
+        },
+        body: formData
+      })
+      .then(function(response) {
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status);
+        }
+        return response.json();
+      })
+      .then(function(data) {
+        if (data.success) {
+          hideModal();
+          callback(true);
+        } else {
+          showError(data.error || '<%= I18n.t(:error_invalid_password) %>');
+        }
+      })
+      .catch(function(error) {
+        console.error('Signature verification error:', error);
+        showError('<%= I18n.t(:error_signature_verification_failed) %>');
+      });
+    }
+
+    function submitFormWithSignature() {
+      verifySignature(function(success) {
+        if (success) {
+          var issueForm = document.getElementById('issue-form');
+          if (issueForm) {
+            // Add hidden field to indicate signature was verified
+            var signatureVerified = document.createElement('input');
+            signatureVerified.type = 'hidden';
+            signatureVerified.name = 'signature_verified';
+            signatureVerified.value = 'true';
+            issueForm.appendChild(signatureVerified);
+
+            // Disable the "unsaved changes" warning
+            window.onbeforeunload = null;
+            if (typeof observeFormChanges === 'function') {
+              // Redmine uses this to track form changes
+              issueForm.setAttribute('data-warn-on-leave', 'false');
             }
-          } else {
-            showError('<%= I18n.t(:error_signature_verification_failed) %>');
+
+            // Submit the form
+            issueForm.submit();
           }
         }
-      };
-
-      xhr.send(JSON.stringify({
-        issue_id: issueId,
-        password: password,
-        signature_meaning: meaning,
-        new_status: pendingStatusChange
-      }));
+      });
     }
 
     function interceptFormSubmit() {
@@ -124,6 +187,7 @@
 
         if (isSignatureRequired(newStatusName)) {
           e.preventDefault();
+          e.stopPropagation();
           pendingStatusChange = newStatusName;
           showModal();
           return false;
@@ -131,48 +195,78 @@
       });
     }
 
-    // Modal event handlers
-    document.addEventListener('DOMContentLoaded', function() {
-      var modal = document.getElementById('lab-flow-signature-modal');
+    function initModal() {
+      var modal = getModal();
       if (!modal) return;
 
-      // Close button
-      modal.querySelector('.lab-flow-modal-close').addEventListener('click', hideModal);
-      document.getElementById('signature-cancel').addEventListener('click', hideModal);
+      // Close button (X)
+      var closeBtn = modal.querySelector('.lab-flow-modal-close');
+      if (closeBtn) {
+        closeBtn.onclick = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          hideModal();
+        };
+      }
+
+      // Cancel button
+      var cancelBtn = document.getElementById('signature-cancel');
+      if (cancelBtn) {
+        cancelBtn.onclick = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          hideModal();
+        };
+      }
 
       // Overlay click
-      modal.querySelector('.lab-flow-modal-overlay').addEventListener('click', hideModal);
+      var overlay = modal.querySelector('.lab-flow-modal-overlay');
+      if (overlay) {
+        overlay.onclick = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          hideModal();
+        };
+      }
 
       // Submit button
-      document.getElementById('signature-submit').addEventListener('click', function() {
-        verifySignature(function(success) {
-          if (success) {
-            // Resubmit the form
-            var issueForm = document.getElementById('issue-form');
-            if (issueForm) {
-              // Add hidden field to indicate signature was verified
-              var signatureVerified = document.createElement('input');
-              signatureVerified.type = 'hidden';
-              signatureVerified.name = 'signature_verified';
-              signatureVerified.value = 'true';
-              issueForm.appendChild(signatureVerified);
-              issueForm.submit();
-            }
-          }
-        });
-      });
+      var submitBtn = document.getElementById('signature-submit');
+      if (submitBtn) {
+        submitBtn.onclick = function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          submitFormWithSignature();
+        };
+      }
 
       // Enter key in password field
-      document.getElementById('signature_password').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          document.getElementById('signature-submit').click();
+      var passwordField = document.getElementById('signature_password');
+      if (passwordField) {
+        passwordField.onkeypress = function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            submitFormWithSignature();
+          }
+        };
+      }
+
+      // Escape key to close
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && isModalVisible()) {
+          hideModal();
         }
       });
 
       // Intercept form submission
       interceptFormSubmit();
-    });
+    }
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initModal);
+    } else {
+      initModal();
+    }
   })();
 </script>
 <% end %>

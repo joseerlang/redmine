@@ -204,4 +204,45 @@ namespace :lab_flow do
 
     issue.custom_field_values = { cf.id => value }
   end
+
+  desc 'Fix workflow status order (Verified should be between QC Pending and Completed)'
+  task fix_status_order: :environment do
+    require_relative '../redmine_lab_flow/setup'
+
+    puts 'Fixing LabFlow workflow status order...'
+
+    # Get statuses
+    qc_pending = IssueStatus.find_by(name: I18n.t(:label_status_qc_pending))
+    verified = IssueStatus.find_by(name: I18n.t(:label_status_verified))
+    completed = IssueStatus.find_by(name: I18n.t(:label_status_completed))
+
+    unless qc_pending && verified && completed
+      puts 'ERROR: Could not find all required statuses.'
+      puts "  QC Pending: #{qc_pending&.name || 'NOT FOUND'}"
+      puts "  Verified: #{verified&.name || 'NOT FOUND'}"
+      puts "  Completed: #{completed&.name || 'NOT FOUND'}"
+      exit 1
+    end
+
+    puts "Current positions:"
+    puts "  QC Pending: #{qc_pending.position}"
+    puts "  Verified: #{verified.position}"
+    puts "  Completed: #{completed.position}"
+
+    # Verified should be between QC Pending and Completed
+    # Set Verified position to QC Pending + 1, then Completed to Verified + 1
+    new_verified_position = qc_pending.position + 1
+    new_completed_position = new_verified_position + 1
+
+    # Update positions
+    verified.update_column(:position, new_verified_position)
+    completed.update_column(:position, new_completed_position)
+
+    puts "\nNew positions:"
+    puts "  QC Pending: #{qc_pending.reload.position}"
+    puts "  Verified: #{verified.reload.position}"
+    puts "  Completed: #{completed.reload.position}"
+
+    puts "\nDone! Status order fixed."
+  end
 end
