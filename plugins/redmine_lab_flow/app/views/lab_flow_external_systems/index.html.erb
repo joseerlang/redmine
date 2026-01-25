@@ -1,0 +1,47 @@
+<h2><%= l(:label_external_systems) %></h2>
+
+<p><%= link_to l(:label_external_system_new), new_lab_flow_external_system_path, class: 'icon icon-add' %></p>
+
+<% if @systems.any? %>
+  <table class="list">
+    <thead>
+      <tr>
+        <th><%= l(:field_name) %></th>
+        <th><%= l(:label_system_type) %></th>
+        <th><%= l(:label_base_url) %></th>
+        <th><%= l(:label_auth_type) %></th>
+        <th><%= l(:label_health_status) %></th>
+        <th><%= l(:label_active) %></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @systems.each do |system| %>
+        <tr class="<%= cycle('odd', 'even') %> <%= 'inactive' unless system.active? %>">
+          <td><%= link_to system.name, lab_flow_external_system_path(system) %></td>
+          <td><%= l("label_system_type_#{system.system_type}") %></td>
+          <td><%= truncate(system.base_url, length: 40) %></td>
+          <td><%= system.auth_type %></td>
+          <td>
+            <% case system.last_health_status %>
+            <% when 'ok' %>
+              <span class="icon icon-checked"><%= l(:label_health_ok) %></span>
+            <% when 'error' %>
+              <span class="icon icon-warning"><%= l(:label_health_error) %></span>
+            <% else %>
+              <span><%= l(:label_health_unknown) %></span>
+            <% end %>
+          </td>
+          <td><%= system.active? ? l(:label_active) : l(:label_inactive) %></td>
+          <td class="buttons">
+            <%= link_to l(:label_health_check), health_check_lab_flow_external_system_path(system), method: :post, class: 'icon icon-reload' %>
+            <%= link_to l(:button_edit), edit_lab_flow_external_system_path(system), class: 'icon icon-edit' %>
+            <%= link_to l(:button_delete), lab_flow_external_system_path(system), method: :delete, data: { confirm: l(:text_are_you_sure) }, class: 'icon icon-del' %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% end %>

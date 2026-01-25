@@ -1,0 +1,233 @@
+<h2><%= l(:label_molecule_editor) %></h2>
+
+<div class="box">
+  <div id="ketcher-container" class="ketcher-container">
+    <div class="ketcher-loading">
+      <p><%= l(:label_loading_editor) %></p>
+    </div>
+  </div>
+
+  <div class="editor-controls">
+    <div class="smiles-output">
+      <label for="smiles-output"><%= l(:label_smiles_output) %>:</label>
+      <input type="text" id="smiles-output" value="<%= @current_smiles %>" readonly size="60">
+      <button type="button" id="copy-smiles" class="icon icon-copy"><%= l(:button_copy) %></button>
+    </div>
+
+    <% if @field_id %>
+      <p class="buttons">
+        <button type="button" id="apply-smiles" class="icon icon-ok"><%= l(:button_apply) %></button>
+        <button type="button" id="cancel-editor" class="icon icon-cancel"><%= l(:button_cancel) %></button>
+      </p>
+    <% end %>
+  </div>
+</div>
+
+<div class="box">
+  <h3><%= l(:label_molecule_properties) %></h3>
+  <div id="molecule-properties">
+    <p class="nodata"><%= l(:label_draw_molecule_first) %></p>
+  </div>
+</div>
+
+<%= javascript_tag do %>
+document.addEventListener('DOMContentLoaded', function() {
+  const container = document.getElementById('ketcher-container');
+  const smilesOutput = document.getElementById('smiles-output');
+  const propertiesDiv = document.getElementById('molecule-properties');
+
+  // Load Ketcher from CDN
+  const loadKetcher = async () => {
+    try {
+      // Load Ketcher styles
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/ketcher-react@2.7.2/dist/index.css';
+      document.head.appendChild(link);
+
+      // For now, show a simpler SMILES input interface
+      // Full Ketcher integration requires React which is complex for this context
+      container.innerHTML = `
+        <div class="simple-molecule-input">
+          <h4>SMILES Input</h4>
+          <p>Enter a SMILES string or paste from external tools:</p>
+          <textarea id="smiles-input" rows="3" cols="60" placeholder="e.g., CCO for ethanol, c1ccccc1 for benzene"><%= @current_smiles %></textarea>
+          <button type="button" id="validate-smiles">Validate & Preview</button>
+          <div id="molecule-preview" class="molecule-preview"></div>
+        </div>
+      `;
+
+      // Wire up validation
+      document.getElementById('validate-smiles')?.addEventListener('click', validateAndPreview);
+      document.getElementById('smiles-input')?.addEventListener('change', function() {
+        smilesOutput.value = this.value;
+      });
+
+      // Initial validation if SMILES provided
+      const initialSmiles = '<%= @current_smiles %>';
+      if (initialSmiles) {
+        setTimeout(validateAndPreview, 500);
+      }
+    } catch (e) {
+      console.error('Error loading editor:', e);
+      container.innerHTML = '<p class="error">Error loading molecule editor</p>';
+    }
+  };
+
+  const validateAndPreview = async () => {
+    const smiles = document.getElementById('smiles-input')?.value;
+    if (!smiles) return;
+
+    smilesOutput.value = smiles;
+
+    const preview = document.getElementById('molecule-preview');
+    preview.innerHTML = '<p>Loading preview...</p>';
+
+    // Load RDKit.js for preview
+    if (typeof initRDKitModule === 'undefined') {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/@rdkit/rdkit/dist/RDKit_minimal.js';
+      script.onload = () => renderPreview(smiles);
+      document.head.appendChild(script);
+    } else {
+      renderPreview(smiles);
+    }
+
+    // Fetch properties
+    fetchProperties(smiles);
+  };
+
+  const renderPreview = async (smiles) => {
+    const preview = document.getElementById('molecule-preview');
+    try {
+      const RDKit = await initRDKitModule();
+      const mol = RDKit.get_mol(smiles);
+      if (mol) {
+        preview.innerHTML = mol.get_svg(300, 200);
+        mol.delete();
+      } else {
+        preview.innerHTML = '<p class="error">Invalid SMILES</p>';
+      }
+    } catch (e) {
+      preview.innerHTML = '<p class="error">Error rendering molecule</p>';
+    }
+  };
+
+  const fetchProperties = async (smiles) => {
+    try {
+      const response = await fetch('/lab_flow_molecules/properties?smiles=' + encodeURIComponent(smiles));
+      const data = await response.json();
+
+      if (data.error) {
+        propertiesDiv.innerHTML = '<p class="error">' + data.error + '</p>';
+      } else {
+        propertiesDiv.innerHTML = `
+          <table class="list">
+            <tr><th>Molecular Formula</th><td>${data.molecular_formula || 'N/A'}</td></tr>
+            <tr><th>Molecular Weight</th><td>${data.molecular_weight ? data.molecular_weight + ' g/mol' : 'N/A'}</td></tr>
+            <tr><th>LogP</th><td>${data.log_p || 'N/A'}</td></tr>
+            <tr><th>TPSA</th><td>${data.tpsa ? data.tpsa + ' Å²' : 'N/A'}</td></tr>
+            <tr><th>H-Bond Donors</th><td>${data.hbd || 'N/A'}</td></tr>
+            <tr><th>H-Bond Acceptors</th><td>${data.hba || 'N/A'}</td></tr>
+            <tr><th>Lipinski Compliant</th><td>${data.lipinski_compliant ? 'Yes' : 'No'}</td></tr>
+          </table>
+        `;
+      }
+    } catch (e) {
+      propertiesDiv.innerHTML = '<p class="error">Error fetching properties</p>';
+    }
+  };
+
+  // Copy button
+  document.getElementById('copy-smiles')?.addEventListener('click', function() {
+    smilesOutput.select();
+    document.execCommand('copy');
+    alert('SMILES copied to clipboard');
+  });
+
+  // Apply button (when used from custom field)
+  document.getElementById('apply-smiles')?.addEventListener('click', function() {
+    const smiles = smilesOutput.value;
+    const fieldId = '<%= @field_id %>';
+    const returnUrl = '<%= @return_url %>';
+
+    if (window.opener && fieldId) {
+      const field = window.opener.document.getElementById(fieldId);
+      if (field) {
+        field.value = smiles;
+      }
+      window.close();
+    } else if (returnUrl) {
+      window.location.href = returnUrl + '?smiles=' + encodeURIComponent(smiles);
+    }
+  });
+
+  // Cancel button
+  document.getElementById('cancel-editor')?.addEventListener('click', function() {
+    if (window.opener) {
+      window.close();
+    } else {
+      history.back();
+    }
+  });
+
+  loadKetcher();
+});
+<% end %>
+
+<style>
+.ketcher-container {
+  min-height: 400px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+}
+.ketcher-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #999;
+}
+.simple-molecule-input {
+  padding: 20px;
+}
+.simple-molecule-input textarea {
+  width: 100%;
+  font-family: monospace;
+  margin: 10px 0;
+}
+.simple-molecule-input button {
+  margin: 10px 0;
+}
+.molecule-preview {
+  margin-top: 15px;
+  min-height: 200px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9f9f9;
+}
+.editor-controls {
+  margin-top: 15px;
+  padding: 15px;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+.smiles-output {
+  margin-bottom: 10px;
+}
+.smiles-output input {
+  font-family: monospace;
+  margin: 0 10px;
+}
+#molecule-properties table {
+  width: 100%;
+}
+#molecule-properties th {
+  text-align: left;
+  width: 40%;
+}
+</style>

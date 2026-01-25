@@ -1,0 +1,40 @@
+<h2><%= l(:label_sequences) %> - <%= link_to @issue.subject, issue_path(@issue) %></h2>
+
+<p><%= link_to l(:label_sequence_new), new_issue_lab_flow_sequence_path(@issue), class: 'icon icon-add' %></p>
+
+<% if @sequences.any? %>
+  <table class="list">
+    <thead>
+      <tr>
+        <th><%= l(:field_name) %></th>
+        <th><%= l(:label_sequence_type) %></th>
+        <th><%= l(:label_sequence_length) %></th>
+        <th><%= l(:label_circular) %></th>
+        <th><%= l(:label_gc_content) %></th>
+        <th><%= l(:label_annotations) %></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @sequences.each do |seq| %>
+        <tr class="<%= cycle('odd', 'even') %>">
+          <td><%= link_to seq.name, issue_lab_flow_sequence_path(@issue, seq) %></td>
+          <td><span class="sequence-type sequence-type-<%= seq.sequence_type %>"><%= seq.sequence_type.upcase %></span></td>
+          <td><%= number_with_delimiter(seq.length) %> bp</td>
+          <td><%= seq.circular? ? l(:general_text_Yes) : l(:general_text_No) %></td>
+          <td><%= seq.gc_content %>%</td>
+          <td><%= seq.annotations.count %></td>
+          <td class="buttons">
+            <%= link_to l(:label_export_fasta), export_issue_lab_flow_sequence_path(@issue, seq, export_format: 'fasta'), class: 'icon icon-download' %>
+            <%= link_to l(:button_edit), edit_issue_lab_flow_sequence_path(@issue, seq), class: 'icon icon-edit' %>
+            <%= link_to l(:button_delete), issue_lab_flow_sequence_path(@issue, seq), method: :delete, data: { confirm: l(:text_are_you_sure) }, class: 'icon icon-del' %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% end %>
+
+<%= link_to l(:button_back), issue_path(@issue), class: 'icon icon-back' %>

@@ -1,0 +1,23 @@
+<div class="external-jobs-panel box">
+  <h3><%= l(:label_external_jobs) %></h3>
+  <ul>
+    <% jobs.each do |job| %>
+      <li>
+        <span class="job-status job-status-<%= job.status %>"><%= l("label_job_#{job.status}") %></span>
+        <%= job.external_system.name %>
+        <% if job.human_duration != 'N/A' %>(<%= job.human_duration %>)<% end %>
+      </li>
+    <% end %>
+  </ul>
+  <p><%= link_to l(:label_submit_job), issue_lab_flow_external_jobs_path(issue), class: 'icon icon-add' %></p>
+</div>
+
+<style>
+.external-jobs-panel ul { list-style: none; padding: 0; margin: 0 0 10px 0; }
+.external-jobs-panel li { padding: 3px 0; }
+.job-status { padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: bold; }
+.job-status-completed { background: #c8e6c9; color: #2e7d32; }
+.job-status-running { background: #bbdefb; color: #1565c0; }
+.job-status-pending { background: #fff9c4; color: #f57f17; }
+.job-status-failed { background: #ffcdd2; color: #c62828; }
+</style>

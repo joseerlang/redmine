@@ -1,0 +1,284 @@
+<h2><%= l(:label_consolidated_view) %>: <%= link_to_issue @issue %></h2>
+
+<div class="consolidated-view">
+  <!-- Overview Section -->
+  <div class="section box">
+    <h3><%= l(:label_overview) %></h3>
+    <div class="overview-grid">
+      <div class="overview-item">
+        <span class="label"><%= l(:field_status) %></span>
+        <span class="value"><%= @issue.status.name %></span>
+      </div>
+      <div class="overview-item">
+        <span class="label"><%= l(:field_assigned_to) %></span>
+        <span class="value"><%= @issue.assigned_to ? link_to_user(@issue.assigned_to) : '-' %></span>
+      </div>
+      <div class="overview-item">
+        <span class="label"><%= l(:field_priority) %></span>
+        <span class="value"><%= @issue.priority.name %></span>
+      </div>
+      <div class="overview-item">
+        <span class="label"><%= l(:field_created_on) %></span>
+        <span class="value"><%= format_time(@issue.created_on) %></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sequences Section -->
+  <% if @sequences.any? %>
+    <div class="section box">
+      <h3><%= l(:label_sequences) %> (<%= @sequences.count %>)</h3>
+      <div class="sequences-preview">
+        <% @sequences.each do |seq| %>
+          <div class="sequence-item">
+            <span class="sequence-type sequence-type-<%= seq.sequence_type %>"><%= seq.sequence_type.upcase %></span>
+            <%= link_to seq.name, issue_lab_flow_sequence_path(@issue, seq) %>
+            <span class="sequence-meta"><%= number_with_delimiter(seq.length) %> bp</span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Molecules Section -->
+  <% if @molecules.any? %>
+    <div class="section box">
+      <h3><%= l(:label_molecules) %> (<%= @molecules.count %>)</h3>
+      <div class="molecules-preview" id="molecules-container">
+        <% @molecules.each_with_index do |mol, i| %>
+          <div class="molecule-thumb" id="mol-thumb-<%= i %>" data-smiles="<%= mol[:smiles] %>">
+            <div class="loading">...</div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- FAIR Metadata Section -->
+  <% if @fair_metadata %>
+    <div class="section box">
+      <h3><%= l(:label_fair_metadata) %></h3>
+      <div class="fair-summary">
+        <div class="fair-score-mini <%= 'good' if @fair_metadata.fair_score >= 70 %> <%= 'medium' if @fair_metadata.fair_score >= 40 && @fair_metadata.fair_score < 70 %> <%= 'low' if @fair_metadata.fair_score < 40 %>">
+          <%= @fair_metadata.fair_score %>%
+        </div>
+        <div class="fair-details">
+          <% if @fair_metadata.doi.present? %>
+            <p><strong>DOI:</strong> <%= link_to @fair_metadata.doi, "https://doi.org/#{@fair_metadata.doi}", target: '_blank' %></p>
+          <% end %>
+          <% if @fair_metadata.license.present? %>
+            <p><strong><%= l(:label_license) %>:</strong> <%= @fair_metadata.license %></p>
+          <% end %>
+        </div>
+      </div>
+      <p><%= link_to l(:button_edit), edit_issue_lab_flow_fair_path(@issue), class: 'icon icon-edit' %></p>
+    </div>
+  <% end %>
+
+  <!-- External Jobs Section -->
+  <% if @external_jobs.any? %>
+    <div class="section box">
+      <h3><%= l(:label_external_jobs) %> (<%= @external_jobs.count %>)</h3>
+      <table class="list">
+        <thead>
+          <tr>
+            <th><%= l(:label_external_system) %></th>
+            <th><%= l(:field_status) %></th>
+            <th><%= l(:label_submitted_at) %></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @external_jobs.limit(5).each do |job| %>
+            <tr>
+              <td><%= job.external_system.name %></td>
+              <td><span class="job-status job-status-<%= job.status %>"><%= l("label_job_#{job.status}") %></span></td>
+              <td><%= format_time(job.submitted_at) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+      <% if @external_jobs.count > 5 %>
+        <p><%= link_to l(:label_view_all), issue_lab_flow_external_jobs_path(@issue) %></p>
+      <% end %>
+    </div>
+  <% end %>
+
+  <!-- Property Snapshots Section -->
+  <% if @snapshots.any? %>
+    <div class="section box">
+      <h3><%= l(:label_property_history) %></h3>
+      <div class="timeline">
+        <% @snapshots.limit(10).each do |snapshot| %>
+          <div class="timeline-item">
+            <span class="timeline-date"><%= format_time(snapshot.created_at) %></span>
+            <span class="timeline-user"><%= link_to_user snapshot.user %></span>
+            <% if snapshot.changes_summary.present? %>
+              <span class="timeline-changes"><%= snapshot.changes_summary %></span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+      <% if @snapshots.count > 10 %>
+        <p><%= link_to l(:label_view_all_snapshots), issue_lab_flow_snapshots_path(@issue) %></p>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+
+<p class="buttons">
+  <%= link_to l(:label_export_consolidated), export_issue_lab_flow_consolidated_path(@issue), class: 'icon icon-download' %>
+  <%= link_to l(:button_back), issue_path(@issue), class: 'icon icon-back' %>
+</p>
+
+<%= javascript_tag do %>
+document.addEventListener('DOMContentLoaded', async function() {
+  // Load RDKit.js for molecule thumbnails
+  const container = document.getElementById('molecules-container');
+  if (!container) return;
+
+  const script = document.createElement('script');
+  script.src = 'https://unpkg.com/@rdkit/rdkit/dist/RDKit_minimal.js';
+  script.onload = async function() {
+    try {
+      const RDKit = await initRDKitModule();
+      document.querySelectorAll('.molecule-thumb').forEach(thumb => {
+        const smiles = thumb.dataset.smiles;
+        if (smiles) {
+          const mol = RDKit.get_mol(smiles);
+          if (mol) {
+            thumb.innerHTML = mol.get_svg(80, 60);
+            mol.delete();
+          }
+        }
+      });
+    } catch (e) {
+      console.error('RDKit error:', e);
+    }
+  };
+  document.head.appendChild(script);
+});
+<% end %>
+
+<style>
+.consolidated-view .section {
+  margin-bottom: 15px;
+}
+.consolidated-view h3 {
+  margin-top: 0;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 8px;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+}
+.overview-item .label {
+  display: block;
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+}
+.overview-item .value {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.sequences-preview .sequence-item {
+  padding: 5px 0;
+  border-bottom: 1px solid #eee;
+}
+.sequence-type {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: bold;
+  margin-right: 8px;
+}
+.sequence-type-dna { background: #e3f2fd; color: #1565c0; }
+.sequence-type-plasmid { background: #f3e5f5; color: #7b1fa2; }
+.sequence-type-rna { background: #fff3e0; color: #e65100; }
+.sequence-type-protein { background: #e8f5e9; color: #2e7d32; }
+.sequence-meta { color: #888; font-size: 12px; margin-left: 10px; }
+
+.molecules-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.molecule-thumb {
+  width: 80px;
+  height: 60px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9f9f9;
+}
+.molecule-thumb .loading { color: #ccc; font-size: 10px; }
+
+.fair-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+.fair-score-mini {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+}
+.fair-score-mini.good { background: #c8e6c9; color: #2e7d32; }
+.fair-score-mini.medium { background: #fff9c4; color: #f57f17; }
+.fair-score-mini.low { background: #ffcdd2; color: #c62828; }
+.fair-details p { margin: 5px 0; font-size: 13px; }
+
+.job-status {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: bold;
+}
+.job-status-completed { background: #c8e6c9; color: #2e7d32; }
+.job-status-running { background: #bbdefb; color: #1565c0; }
+.job-status-pending { background: #fff9c4; color: #f57f17; }
+.job-status-failed { background: #ffcdd2; color: #c62828; }
+
+.timeline {
+  border-left: 2px solid #ddd;
+  padding-left: 15px;
+  margin-left: 10px;
+}
+.timeline-item {
+  padding: 8px 0;
+  position: relative;
+  font-size: 13px;
+}
+.timeline-item::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: #1565c0;
+  border-radius: 50%;
+  position: absolute;
+  left: -19px;
+  top: 12px;
+}
+.timeline-date {
+  color: #888;
+  font-size: 11px;
+  display: block;
+}
+.timeline-changes {
+  display: block;
+  color: #666;
+  font-style: italic;
+}
+</style>

@@ -6,11 +6,11 @@ module RedmineLabFlow
     render_on :view_projects_show_sidebar_bottom,
               partial: 'hooks/redmine_lab_flow/project_sidebar'
 
-    # CSS styles for finalization badge
+    # CSS/JS for visualizers and styling
     render_on :view_layouts_base_html_head,
               partial: 'hooks/redmine_lab_flow/html_head'
 
-    # Issue show details - finalized badge
+    # Issue show details - finalized badge + Phase 5/6 links
     def view_issues_show_details_bottom(context = {})
       issue = context[:issue]
       return '' unless issue
@@ -21,15 +21,28 @@ module RedmineLabFlow
       })
     end
 
-    # Issue description bottom - Wiki actions
+    # Issue description bottom - Wiki actions + Sequences panel
     def view_issues_show_description_bottom(context = {})
       issue = context[:issue]
       return '' unless issue
 
-      context[:controller].send(:render_to_string, {
+      output = context[:controller].send(:render_to_string, {
         partial: 'hooks/redmine_lab_flow/issue_wiki_actions',
         locals: { issue: issue }
       })
+
+      # Phase 6.2: Sequence viewer panel
+      if defined?(LabFlowSequence) && issue.respond_to?(:lab_flow_sequences) && issue.lab_flow_sequences.any?
+        output += context[:controller].send(:render_to_string, {
+          partial: 'hooks/redmine_lab_flow/sequences_panel',
+          locals: { issue: issue, sequences: issue.lab_flow_sequences }
+        })
+      end
+
+      output
+    rescue StandardError => e
+      Rails.logger.error "[RedmineLabFlow] Issue description hook error: #{e.message}"
+      ''
     end
 
     # Issue edit notes - reason for change requirement
@@ -73,6 +86,51 @@ module RedmineLabFlow
       })
     rescue StandardError => e
       Rails.logger.error "[RedmineLabFlow] Signature modal hook error: #{e.message}"
+      ''
+    end
+
+    # Phase 5.1: Dashboard link in project overview
+    def view_projects_show_right(context = {})
+      project = context[:project]
+      return '' unless project&.module_enabled?(:laboratory_management)
+
+      context[:controller].send(:render_to_string, {
+        partial: 'hooks/redmine_lab_flow/project_dashboard_link',
+        locals: { project: project }
+      })
+    rescue StandardError
+      ''
+    end
+
+    # Phase 5.4: FAIR metadata panel on issue sidebar
+    def view_issues_show_sidebar_bottom(context = {})
+      issue = context[:issue]
+      return '' unless issue
+
+      output = ''
+
+      # FAIR metadata panel
+      if defined?(LabFlowFairMetadata)
+        output += context[:controller].send(:render_to_string, {
+          partial: 'hooks/redmine_lab_flow/fair_metadata_panel',
+          locals: { issue: issue }
+        })
+      end
+
+      # External jobs panel
+      if defined?(LabFlowExternalJob) && issue.respond_to?(:lab_flow_external_jobs)
+        jobs = LabFlowExternalJob.for_issue(issue).recent(5)
+        if jobs.any?
+          output += context[:controller].send(:render_to_string, {
+            partial: 'hooks/redmine_lab_flow/external_jobs_panel',
+            locals: { issue: issue, jobs: jobs }
+          })
+        end
+      end
+
+      output
+    rescue StandardError => e
+      Rails.logger.error "[RedmineLabFlow] Issue sidebar hook error: #{e.message}"
       ''
     end
   end

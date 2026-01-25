@@ -1,0 +1,54 @@
+<h2><%= l(:label_external_jobs) %></h2>
+
+<div class="contextual">
+  <%= link_to l(:label_submit_job), issue_lab_flow_external_jobs_path(@issue), class: 'icon icon-add' if @issue %>
+</div>
+
+<% if @jobs.any? %>
+  <table class="list">
+    <thead>
+      <tr>
+        <th><%= l(:label_external_system) %></th>
+        <th><%= l(:label_job_type) %></th>
+        <th><%= l(:field_status) %></th>
+        <th><%= l(:label_submitted_at) %></th>
+        <th><%= l(:label_duration) %></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @jobs.each do |job| %>
+        <tr class="<%= cycle('odd', 'even') %> job-<%= job.status %>">
+          <td><%= job.external_system.name %></td>
+          <td><%= job.job_type %></td>
+          <td>
+            <span class="job-status job-status-<%= job.status %>">
+              <%= l("label_job_#{job.status}") %>
+            </span>
+          </td>
+          <td><%= format_time(job.submitted_at) %></td>
+          <td><%= job.human_duration %></td>
+          <td class="buttons">
+            <%= link_to l(:button_show), issue_lab_flow_external_job_path(@issue, job), class: 'icon icon-zoom-in' %>
+            <% if job.status == 'running' %>
+              <%= link_to l(:button_cancel), cancel_issue_lab_flow_external_job_path(@issue, job), method: :post, data: { confirm: l(:text_are_you_sure) }, class: 'icon icon-cancel' %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="nodata"><%= l(:label_no_external_jobs) %></p>
+<% end %>
+
+<%= link_to l(:button_back), issue_path(@issue), class: 'icon icon-back' if @issue %>
+
+<style>
+.job-status { padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: bold; }
+.job-status-completed { background: #c8e6c9; color: #2e7d32; }
+.job-status-running { background: #bbdefb; color: #1565c0; }
+.job-status-pending { background: #fff9c4; color: #f57f17; }
+.job-status-failed { background: #ffcdd2; color: #c62828; }
+.job-status-cancelled { background: #cfd8dc; color: #455a64; }
+</style>

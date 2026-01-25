@@ -1,0 +1,68 @@
+<h2><%= @system.name %></h2>
+
+<div class="box">
+  <table class="attributes">
+    <tr>
+      <th><%= l(:label_system_type) %>:</th>
+      <td><%= l("label_system_type_#{@system.system_type}") %></td>
+    </tr>
+    <tr>
+      <th><%= l(:label_base_url) %>:</th>
+      <td><%= link_to @system.base_url, @system.base_url, target: '_blank' %></td>
+    </tr>
+    <tr>
+      <th><%= l(:label_auth_type) %>:</th>
+      <td><%= @system.auth_type.humanize %></td>
+    </tr>
+    <tr>
+      <th><%= l(:label_health_status) %>:</th>
+      <td>
+        <% case @system.last_health_status %>
+        <% when 'ok' %>
+          <span class="icon icon-checked"><%= l(:label_health_ok) %></span>
+        <% when 'error' %>
+          <span class="icon icon-warning"><%= l(:label_health_error) %></span>
+        <% else %>
+          <span><%= l(:label_health_unknown) %></span>
+        <% end %>
+        <% if @system.last_health_check_at %>
+          (<%= format_time(@system.last_health_check_at) %>)
+        <% end %>
+      </td>
+    </tr>
+    <tr>
+      <th><%= l(:label_active) %>:</th>
+      <td><%= @system.active? ? l(:general_text_Yes) : l(:general_text_No) %></td>
+    </tr>
+  </table>
+</div>
+
+<% if @recent_jobs.any? %>
+  <h3><%= l(:label_external_jobs) %></h3>
+  <table class="list">
+    <thead>
+      <tr>
+        <th>Issue</th>
+        <th><%= l(:label_job_type) %></th>
+        <th><%= l(:label_job_status) %></th>
+        <th><%= l(:field_created_on) %></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @recent_jobs.each do |job| %>
+        <tr>
+          <td><%= link_to "##{job.issue_id}", issue_path(job.issue) %></td>
+          <td><%= job.job_type %></td>
+          <td><%= l("label_job_#{job.status}") %></td>
+          <td><%= format_time(job.created_at) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+
+<p>
+  <%= link_to l(:label_health_check), health_check_lab_flow_external_system_path(@system), method: :post, class: 'icon icon-reload' %>
+  <%= link_to l(:button_edit), edit_lab_flow_external_system_path(@system), class: 'icon icon-edit' %>
+  <%= link_to l(:button_back), lab_flow_external_systems_path, class: 'icon icon-back' %>
+</p>

@@ -85,4 +85,19 @@
     <strong><%= l(:label_assay) %>:</strong> <%= @assays_count %><br>
     <strong><%= l(:label_daily_log) %>:</strong> <%= @logs_count %>
   </p>
+
+  <% if User.current.allowed_to?(:manage_lab_entities, @project) %>
+    <h3><%= l(:label_configuration) %></h3>
+    <ul>
+      <li><%= link_to l(:label_webhooks), lab_flow_webhooks_path(project_id: @project.identifier) %></li>
+    </ul>
+  <% end %>
+
+  <% if User.current.admin? %>
+    <h3><%= l(:label_administration) %></h3>
+    <ul>
+      <li><%= link_to l(:label_external_systems), lab_flow_external_systems_path %></li>
+      <li><%= link_to l(:label_report_templates), lab_flow_report_templates_path %></li>
+    </ul>
+  <% end %>
 <% end %>

@@ -1,0 +1,315 @@
+<h2><%= @sequence.name %></h2>
+
+<div class="box">
+  <div class="sequence-header">
+    <span class="sequence-type sequence-type-<%= @sequence.sequence_type %>"><%= @sequence.sequence_type.upcase %></span>
+    <span class="sequence-length"><%= number_with_delimiter(@sequence.length) %> bp</span>
+    <% if @sequence.circular? %>
+      <span class="sequence-circular"><%= l(:label_circular) %></span>
+    <% end %>
+    <% if @sequence.gc_content %>
+      <span class="sequence-gc">GC: <%= @sequence.gc_content %>%</span>
+    <% end %>
+  </div>
+
+  <!-- SeqViz Container -->
+  <div id="seqviz-container"
+       class="seqviz-container"
+       data-sequence="<%= @sequence.clean_sequence %>"
+       data-name="<%= @sequence.name %>"
+       data-circular="<%= @sequence.circular? %>"
+       data-annotations="<%= @sequence.annotations.map(&:to_seqviz).to_json %>">
+  </div>
+
+  <!-- Annotations Table -->
+  <% if @sequence.annotations.any? %>
+    <h3><%= l(:label_annotations) %></h3>
+    <table class="list">
+      <thead>
+        <tr>
+          <th><%= l(:field_name) %></th>
+          <th><%= l(:label_annotation_type) %></th>
+          <th><%= l(:label_start_position) %></th>
+          <th><%= l(:label_end_position) %></th>
+          <th><%= l(:label_strand) %></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @sequence.annotations.ordered.each do |ann| %>
+          <tr>
+            <td><span style="border-left: 4px solid <%= ann.color %>; padding-left: 5px;"><%= ann.name %></span></td>
+            <td><%= (l("label_annotation_#{ann.annotation_type}") rescue ann.annotation_type.humanize) %></td>
+            <td><%= ann.start_position + 1 %></td>
+            <td><%= ann.end_position + 1 %></td>
+            <td><%= ann.strand_display %></td>
+            <td class="buttons">
+              <%= link_to l(:button_delete), issue_lab_flow_sequence_annotation_path(@issue, @sequence, ann), method: :delete, data: { confirm: l(:text_are_you_sure) }, class: 'icon icon-del' %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% end %>
+
+  <!-- Add Annotation Form -->
+  <fieldset class="collapsible collapsed">
+    <legend onclick="toggleFieldset(this);"><%= l(:label_annotation_new) %></legend>
+    <div style="display: none;">
+      <%= form_tag issue_lab_flow_sequence_annotations_path(@issue, @sequence), method: :post do %>
+        <p>
+          <%= label_tag :name, l(:field_name) %>
+          <%= text_field_tag 'lab_flow_sequence_annotation[name]', '', size: 30 %>
+        </p>
+        <p>
+          <%= label_tag :annotation_type, l(:label_annotation_type) %>
+          <%= select_tag 'lab_flow_sequence_annotation[annotation_type]', options_for_select(LabFlowSequenceAnnotation::ANNOTATION_TYPES.map { |t| [(l("label_annotation_#{t}") rescue t.humanize), t] }) %>
+        </p>
+        <p>
+          <%= label_tag :start_position, l(:label_start_position) %>
+          <%= number_field_tag 'lab_flow_sequence_annotation[start_position]', 0, min: 0, max: @sequence.length - 1 %>
+        </p>
+        <p>
+          <%= label_tag :end_position, l(:label_end_position) %>
+          <%= number_field_tag 'lab_flow_sequence_annotation[end_position]', 0, min: 0, max: @sequence.length - 1 %>
+        </p>
+        <p>
+          <%= label_tag :strand, l(:label_strand) %>
+          <%= select_tag 'lab_flow_sequence_annotation[strand]', options_for_select([[l(:label_forward_strand), 1], [l(:label_reverse_strand), -1]]) %>
+        </p>
+        <p>
+          <%= label_tag :color, 'Color' %>
+          <%= color_field_tag 'lab_flow_sequence_annotation[color]', '#4CAF50' %>
+        </p>
+        <%= submit_tag l(:button_add) %>
+      <% end %>
+    </div>
+  </fieldset>
+
+  <!-- Restriction Sites -->
+  <fieldset class="collapsible collapsed">
+    <legend onclick="toggleFieldset(this);"><%= l(:label_restriction_sites) %></legend>
+    <div id="restriction-sites" style="display: none;">
+      <%= button_to l(:label_find_restriction_sites), restriction_map_issue_lab_flow_sequence_path(@issue, @sequence), method: :post, remote: true, class: 'icon icon-search', form: { id: 'restriction-form' } %>
+      <div id="restriction-sites-results" style="margin-top: 10px;"></div>
+    </div>
+  </fieldset>
+</div>
+
+<p class="buttons">
+  <%= link_to l(:label_export_fasta), export_issue_lab_flow_sequence_path(@issue, @sequence, export_format: 'fasta'), class: 'icon icon-download' %>
+  <%= link_to l(:label_export_genbank), export_issue_lab_flow_sequence_path(@issue, @sequence, export_format: 'genbank'), class: 'icon icon-download' %>
+  <%= link_to l(:button_edit), edit_issue_lab_flow_sequence_path(@issue, @sequence), class: 'icon icon-edit' %>
+  <%= link_to l(:button_back), issue_path(@issue), class: 'icon icon-back' %>
+</p>
+
+<%= javascript_tag do %>
+document.addEventListener('DOMContentLoaded', function() {
+  const container = document.getElementById('seqviz-container');
+  if (!container) return;
+
+  const sequence = container.dataset.sequence || '';
+  const name = container.dataset.name || 'Sequence';
+  const isCircular = container.dataset.circular === 'true';
+  let annotations = [];
+  try {
+    annotations = JSON.parse(container.dataset.annotations || '[]');
+  } catch(e) {
+    console.error('Error parsing annotations:', e);
+  }
+
+  renderSequenceViewer(container, sequence, name, isCircular, annotations);
+});
+
+function renderSequenceViewer(container, sequence, name, isCircular, annotations) {
+  // Color scheme for nucleotides
+  const colors = {
+    'A': '#4CAF50', // green
+    'T': '#f44336', // red
+    'G': '#FF9800', // orange
+    'C': '#2196F3', // blue
+    'U': '#9C27B0', // purple (RNA)
+    'N': '#9E9E9E'  // gray (unknown)
+  };
+
+  // Format sequence with colors and line numbers
+  const charsPerLine = 60;
+  const blocksPerLine = 6;
+  const charsPerBlock = 10;
+
+  let html = '<div class="sequence-viewer-content">';
+
+  // Header
+  html += '<div class="seq-header">';
+  html += '<span class="seq-name">' + escapeHtml(name) + '</span>';
+  html += '<span class="seq-info">' + sequence.length + ' bp</span>';
+  if (isCircular) {
+    html += '<span class="seq-circular-badge">○ Circular</span>';
+  }
+  html += '</div>';
+
+  // Sequence display
+  html += '<div class="seq-display">';
+
+  for (let i = 0; i < sequence.length; i += charsPerLine) {
+    const lineNum = i + 1;
+    const lineSeq = sequence.substring(i, i + charsPerLine);
+
+    html += '<div class="seq-line">';
+    html += '<span class="seq-line-num">' + lineNum.toString().padStart(6, ' ') + '</span>';
+    html += '<span class="seq-bases">';
+
+    // Add bases with colors, grouped in blocks of 10
+    for (let j = 0; j < lineSeq.length; j++) {
+      if (j > 0 && j % charsPerBlock === 0) {
+        html += '<span class="seq-spacer"> </span>';
+      }
+      const base = lineSeq[j].toUpperCase();
+      const color = colors[base] || colors['N'];
+      html += '<span class="seq-base" style="color:' + color + '">' + base + '</span>';
+    }
+
+    html += '</span>';
+    html += '</div>';
+  }
+
+  html += '</div>';
+
+  // Annotations legend if any
+  if (annotations && annotations.length > 0) {
+    html += '<div class="seq-annotations-legend">';
+    html += '<strong>Annotations:</strong> ';
+    annotations.forEach(function(ann) {
+      const color = ann.color || '#4CAF50';
+      html += '<span class="seq-ann-item" style="border-left: 3px solid ' + color + '; padding-left: 5px; margin-right: 15px;">';
+      html += escapeHtml(ann.name) + ' (' + (ann.start + 1) + '-' + (ann.end + 1) + ')';
+      html += '</span>';
+    });
+    html += '</div>';
+  }
+
+  html += '</div>';
+
+  container.innerHTML = html;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Handle restriction sites AJAX response
+document.addEventListener('ajax:success', function(event) {
+  const [data, status, xhr] = event.detail;
+  const resultsDiv = document.getElementById('restriction-sites-results');
+  if (resultsDiv && xhr.responseText) {
+    resultsDiv.innerHTML = xhr.responseText;
+  }
+});
+
+document.addEventListener('ajax:error', function(event) {
+  const resultsDiv = document.getElementById('restriction-sites-results');
+  if (resultsDiv) {
+    resultsDiv.innerHTML = '<p class="error">Error loading restriction sites.</p>';
+  }
+});
+<% end %>
+
+<style>
+.sequence-header {
+  margin-bottom: 15px;
+}
+.sequence-header span {
+  margin-right: 15px;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+.sequence-type {
+  background: #e3f2fd;
+  color: #1565c0;
+  font-weight: bold;
+}
+.sequence-type-plasmid { background: #f3e5f5; color: #7b1fa2; }
+.sequence-type-rna { background: #fff3e0; color: #e65100; }
+.sequence-type-protein { background: #e8f5e9; color: #2e7d32; }
+.sequence-length, .sequence-gc {
+  background: #f5f5f5;
+  color: #666;
+}
+.sequence-circular {
+  background: #ffeb3b;
+  color: #333;
+}
+.seqviz-container {
+  min-height: 200px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin: 15px 0;
+  background: #fff;
+}
+
+/* Sequence Viewer Styles */
+.sequence-viewer-content {
+  padding: 15px;
+}
+.seq-header {
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+.seq-name {
+  font-weight: bold;
+  font-size: 14px;
+  margin-right: 15px;
+}
+.seq-info {
+  color: #666;
+  margin-right: 15px;
+}
+.seq-circular-badge {
+  background: #fff3cd;
+  color: #856404;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+.seq-display {
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  background: #fafafa;
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.seq-line {
+  white-space: nowrap;
+}
+.seq-line-num {
+  color: #999;
+  margin-right: 15px;
+  user-select: none;
+}
+.seq-bases {
+  letter-spacing: 1px;
+}
+.seq-base {
+  font-weight: 500;
+}
+.seq-spacer {
+  margin: 0 3px;
+}
+.seq-annotations-legend {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+  font-size: 13px;
+}
+.seq-ann-item {
+  display: inline-block;
+  margin-bottom: 5px;
+}
+</style>

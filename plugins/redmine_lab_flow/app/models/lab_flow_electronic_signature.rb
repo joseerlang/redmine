@@ -55,6 +55,16 @@ class LabFlowElectronicSignature < ApplicationRecord
     "#{user.name} (#{meaning_label}) - #{I18n.l(signed_at, format: :long)}"
   end
 
+  # Check if signature is verified (all required fields present)
+  def verified?
+    user_id.present? && signed_at.present? && signature_meaning.present?
+  end
+
+  # Comments/notes on the signature (optional field)
+  def comments
+    read_attribute(:comments) || nil
+  end
+
   private
 
   def set_signed_at

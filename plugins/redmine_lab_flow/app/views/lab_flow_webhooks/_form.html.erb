@@ -1,0 +1,29 @@
+<%= error_messages_for 'webhook' %>
+
+<div class="box tabular">
+  <p>
+    <label for="lab_flow_webhook_event_type"><%= l(:label_event_type) %> <span class="required">*</span></label>
+    <%= f.select :event_type, LabFlowWebhook::EVENT_TYPES.map { |t| [(l("label_event_#{t.tr('.', '_')}") rescue t.humanize), t] } %>
+  </p>
+
+  <p>
+    <label for="lab_flow_webhook_target_url"><%= l(:label_target_url) %> <span class="required">*</span></label>
+    <%= f.url_field :target_url, size: 60, required: true, placeholder: 'https://example.com/webhook' %>
+  </p>
+
+  <p>
+    <label for="lab_flow_webhook_payload_template"><%= l(:label_payload_template) %></label>
+    <%= f.text_area :payload_template, rows: 8, cols: 60, placeholder: '{"event": "{{ event_type }}", "data": {{ data | json }}}' %>
+    <em class="info"><%= l(:text_webhook_payload_info) %></em>
+  </p>
+
+  <p>
+    <label for="lab_flow_webhook_retry_count"><%= l(:label_retry_count) %></label>
+    <%= f.number_field :retry_count, min: 0, max: 10, value: @webhook.retry_count || 3 %>
+  </p>
+
+  <p>
+    <%= f.check_box :active %>
+    <label for="lab_flow_webhook_active"><%= l(:field_active) %></label>
+  </p>
+</div>

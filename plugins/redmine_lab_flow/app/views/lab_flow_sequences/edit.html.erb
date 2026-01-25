@@ -1,0 +1,5 @@
+<h2><%= l(:label_sequence_edit) %>: <%= @sequence.name %></h2>
+
+<%= render partial: 'form' %>
+
+<%= link_to l(:button_back), issue_lab_flow_sequence_path(@issue, @sequence), class: 'icon icon-back' %>

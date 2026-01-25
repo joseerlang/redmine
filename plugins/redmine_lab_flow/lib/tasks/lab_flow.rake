@@ -205,6 +205,170 @@ namespace :lab_flow do
     issue.custom_field_values = { cf.id => value }
   end
 
+  # =============================================================================
+  # Phase 5 & 6: Data Intelligence & Scientific Visualizers
+  # =============================================================================
+
+  desc 'Calculate daily workflow metrics for all projects'
+  task calculate_metrics: :environment do
+    puts "Calculating workflow metrics..."
+
+    Project.active.each do |project|
+      next unless project.module_enabled?(:lab_flow)
+
+      puts "  Processing project: #{project.name}"
+      RedmineLabFlow::MetricsCalculator.calculate_daily_metrics(project)
+    end
+
+    puts "Done calculating metrics."
+  end
+
+  desc 'Detect starvation (stuck issues) and send notifications'
+  task detect_starvation: :environment do
+    puts "Detecting starvation..."
+
+    threshold_days = ENV['STARVATION_DAYS']&.to_i || 7
+
+    Project.active.each do |project|
+      next unless project.module_enabled?(:lab_flow)
+
+      stuck_issues = RedmineLabFlow::MetricsCalculator.detect_starvation(project, threshold_days)
+
+      if stuck_issues.any?
+        puts "  #{project.name}: #{stuck_issues.count} stuck issues"
+
+        # Send notifications if configured
+        if Setting.plugin_redmine_lab_flow['notify_on_starvation']
+          stuck_issues.each do |issue|
+            Mailer.lab_flow_starvation_alert(issue).deliver_later if Mailer.respond_to?(:lab_flow_starvation_alert)
+          end
+        end
+      end
+    end
+
+    puts "Done detecting starvation."
+  end
+
+  desc 'Refresh external job statuses'
+  task refresh_jobs: :environment do
+    puts "Refreshing external job statuses..."
+
+    pending_jobs = LabFlowExternalJob.where(status: ['pending', 'running'])
+
+    pending_jobs.find_each do |job|
+      puts "  Checking job #{job.id} (#{job.external_system.name})"
+
+      begin
+        client = job.external_system.client
+        status = client.job_status(job.external_job_id)
+
+        if status[:status] != job.status
+          job.update!(
+            status: status[:status],
+            result_data: status[:result],
+            finished_at: status[:finished_at]
+          )
+          puts "    Updated to: #{status[:status]}"
+        end
+      rescue => e
+        puts "    Error: #{e.message}"
+      end
+    end
+
+    puts "Done refreshing jobs."
+  end
+
+  desc 'Clean up old generated reports (older than 30 days by default)'
+  task cleanup_reports: :environment do
+    days = ENV['REPORT_RETENTION_DAYS']&.to_i || 30
+
+    puts "Cleaning up reports older than #{days} days..."
+
+    old_reports = LabFlowGeneratedReport.where('created_at < ?', days.days.ago)
+    count = old_reports.count
+
+    old_reports.find_each do |report|
+      report.file&.purge if report.respond_to?(:file) && report.file.respond_to?(:purge)
+      report.destroy
+    end
+
+    puts "Deleted #{count} old reports."
+  end
+
+  desc 'Sync ontology terms from configured sources'
+  task sync_ontologies: :environment do
+    puts "Syncing ontology terms..."
+
+    sources = Setting.plugin_redmine_lab_flow['ontology_sources'] || []
+
+    sources.each do |source|
+      puts "  Syncing from: #{source['name']}"
+
+      begin
+        count = LabFlowOntologyTerm.sync_from_source(source) if LabFlowOntologyTerm.respond_to?(:sync_from_source)
+        puts "    Synced #{count || 0} terms"
+      rescue => e
+        puts "    Error: #{e.message}"
+      end
+    end
+
+    puts "Done syncing ontologies."
+  end
+
+  desc 'Export FAIR metadata for all issues with DOIs'
+  task export_fair: :environment do
+    output_dir = ENV['FAIR_OUTPUT_DIR'] || Rails.root.join('tmp', 'fair_exports')
+    FileUtils.mkdir_p(output_dir)
+
+    puts "Exporting FAIR metadata to #{output_dir}..."
+
+    LabFlowFairMetadata.where.not(doi: nil).find_each do |metadata|
+      issue = metadata.issue
+
+      # Export Schema.org JSON-LD
+      jsonld = RedmineLabFlow::FairExporter.export_schema_org(issue)
+      File.write(File.join(output_dir, "issue_#{issue.id}_schema_org.json"), jsonld.to_json)
+
+      # Export DataCite XML
+      datacite = RedmineLabFlow::FairExporter.export_datacite(issue)
+      File.write(File.join(output_dir, "issue_#{issue.id}_datacite.xml"), datacite)
+
+      puts "  Exported issue ##{issue.id}"
+    end
+
+    puts "Done exporting FAIR metadata."
+  end
+
+  desc 'Create property snapshots for all issues'
+  task create_snapshots: :environment do
+    puts "Creating property snapshots..."
+
+    Issue.open.find_each do |issue|
+      next unless issue.project.module_enabled?(:lab_flow)
+
+      RedmineLabFlow::SnapshotService.create_snapshot(issue, User.current)
+    end
+
+    puts "Done creating snapshots."
+  end
+
+  desc 'Dispatch pending webhooks'
+  task dispatch_webhooks: :environment do
+    puts "Dispatching pending webhooks..."
+
+    # Find webhooks that need to be retried
+    LabFlowWebhook.where(active: true).find_each do |webhook|
+      # This would be called by the webhook dispatcher when events occur
+      puts "  Webhook #{webhook.id}: #{webhook.name} (#{webhook.event_type})"
+    end
+
+    puts "Done."
+  end
+
+  # =============================================================================
+  # Original tasks
+  # =============================================================================
+
   desc 'Fix workflow status order (Verified should be between QC Pending and Completed)'
   task fix_status_order: :environment do
     require_relative '../redmine_lab_flow/setup'

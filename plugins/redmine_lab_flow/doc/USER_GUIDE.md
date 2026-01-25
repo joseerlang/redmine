@@ -649,8 +649,301 @@ curl -H "X-API-Key: YOUR_API_KEY" \
 
 ---
 
+## Performance Dashboard (Phase 5)
+
+LabFlow includes a real-time performance dashboard for monitoring laboratory operations.
+
+### Accessing the Dashboard
+
+1. Go to **Lab Flow** in the project menu
+2. The dashboard displays:
+   - **Workflow Metrics**: Issue counts by status, throughput statistics
+   - **Starvation Alerts**: Issues stuck in a status for too long
+   - **Bottleneck Analysis**: Identify workflow bottlenecks
+
+### Starvation Threshold
+
+Configure the starvation threshold in **Administration > Plugins > Redmine LabFlow > Configure**:
+- Default: 48 hours
+- Issues not updated within this period are flagged
+
+---
+
+## Report Generation (Phase 5)
+
+Generate professional reports from your laboratory data.
+
+### Creating Report Templates (Admin)
+
+1. Go to **Administration > Lab Flow Report Templates**
+2. Click **New Report Template**
+3. Configure:
+   - **Name**: Template name
+   - **Report Type**: Experiment, Sample Batch, Assay Summary, Compliance, Custom
+   - **Template Content**: Use Liquid templating language
+   - **Include ELN Narrative**: Include linked Daily Log content
+   - **Include Electronic Signatures**: Include signature history
+
+### Generating Reports
+
+1. Go to **Lab Flow** in the project menu
+2. Click **Generate Report**
+3. Select a template and output format (PDF, Excel, JSON)
+4. Click **Generate**
+
+### Available Variables in Templates
+
+```liquid
+{{ issue.subject }}
+{{ issue.status.name }}
+{{ issue.author.name }}
+{{ issue.created_on | date: "%Y-%m-%d" }}
+{% for cf in issue.custom_field_values %}
+  {{ cf.custom_field.name }}: {{ cf.value }}
+{% endfor %}
+```
+
+---
+
+## External Systems Integration (Phase 5)
+
+Connect LabFlow with external bioinformatics platforms.
+
+### Supported Systems
+
+| System Type | Description |
+|-------------|-------------|
+| **Galaxy** | Bioinformatics workflow platform |
+| **OpenBIS** | Data management for life sciences |
+| **Custom** | Generic REST API integration |
+
+### Configuring External Systems (Admin)
+
+1. Go to **Administration > External Systems**
+2. Click **New External System**
+3. Configure:
+   - **Name**: System identifier
+   - **System Type**: Galaxy, OpenBIS, or Custom
+   - **Base URL**: API endpoint
+   - **API Key/Secret**: Authentication credentials
+4. Click **Create**
+5. Use **Health Check** to verify connectivity
+
+### Webhooks
+
+Configure webhooks to notify external systems of events:
+
+1. Go to **Project Settings > Webhooks**
+2. Click **New Webhook**
+3. Configure:
+   - **Event Type**: issue_created, issue_updated, status_changed
+   - **Target URL**: Endpoint to receive notifications
+   - **Secret Token**: For payload verification
+4. Use **Test** to verify the webhook
+
+### Submitting External Jobs
+
+From any issue, you can submit jobs to connected external systems:
+
+1. Open an issue
+2. Click **Submit External Job**
+3. Select the target system
+4. Configure job parameters
+5. Click **Submit**
+
+Job status is tracked and updated automatically via callbacks.
+
+---
+
+## FAIR Metadata (Phase 5)
+
+Make your research data Findable, Accessible, Interoperable, and Reusable.
+
+### FAIR Metadata Fields
+
+| Field | Description |
+|-------|-------------|
+| **DOI** | Digital Object Identifier |
+| **ORCID** | Researcher identifier |
+| **License** | Data license (CC-BY, etc.) |
+| **Keywords** | Searchable keywords |
+| **Access Rights** | Open, Restricted, Embargoed, Closed |
+| **Funding Reference** | Grant/funding information |
+| **Related Identifiers** | Links to related datasets |
+
+### Adding FAIR Metadata
+
+1. Open an issue
+2. Click **FAIR Metadata**
+3. Fill in the metadata fields
+4. Click **Save**
+
+### Minting DOIs
+
+If DOI minting is configured:
+
+1. Open an issue with FAIR metadata
+2. Click **Mint DOI**
+3. A DOI is generated via DataCite
+4. The DOI is permanently linked to the issue
+
+### Exporting Metadata
+
+Export metadata in standard formats:
+- **DataCite XML**: For repository submission
+- **Schema.org JSON-LD**: For web discovery
+- **RO-Crate**: Research Object packaging
+- **ISA-Tab**: ISA framework format
+
+---
+
+## Molecular Editor (Phase 6)
+
+LabFlow includes a built-in molecular structure editor and viewer.
+
+### Creating a Molecule Custom Field
+
+1. Go to **Administration > Custom Fields**
+2. Click **New Custom Field** for Issues
+3. Select **Molecule (SMILES)** as the format
+4. Configure name, projects, trackers
+5. Save
+
+### Entering Molecular Structures
+
+When editing an issue with a molecule field:
+
+1. Enter SMILES notation directly (e.g., `CCO` for ethanol)
+2. Or click **Molecular Editor** to draw the structure
+
+### Viewing Molecule Properties
+
+Click **Molecular Properties** to view:
+
+| Property | Description |
+|----------|-------------|
+| **Molecular Formula** | Chemical formula (e.g., C2H6O) |
+| **Molecular Weight** | Mass in g/mol |
+| **LogP** | Lipophilicity |
+| **TPSA** | Topological Polar Surface Area |
+| **H-Bond Donors** | Number of hydrogen bond donors |
+| **H-Bond Acceptors** | Number of hydrogen bond acceptors |
+| **Rotatable Bonds** | Conformational flexibility |
+| **Lipinski Compliant** | Drug-likeness assessment |
+
+### Molecule Search
+
+Search for molecules by:
+- **Substructure**: Find molecules containing a specific fragment
+- **Similarity**: Find structurally similar molecules
+- **Exact Match**: Find identical structures
+
+---
+
+## Sequence Viewer (Phase 6)
+
+LabFlow includes a DNA/RNA/Protein sequence viewer with annotation support.
+
+### Adding Sequences to Issues
+
+1. Open an issue
+2. Click **Add Sequence** (in the Sequences section)
+3. Fill in:
+   - **Name**: Sequence identifier
+   - **Sequence Type**: DNA, RNA, Protein, or Plasmid
+   - **Circular**: Check for circular sequences (plasmids)
+   - **Sequence Data**: Paste sequence or FASTA format
+4. Or **Upload** a FASTA or GenBank file
+5. Click **Create**
+
+### Sequence Viewer Features
+
+The viewer displays:
+- **Colored nucleotides**: A (green), T (red), G (orange), C (blue)
+- **Line numbers**: Position markers
+- **GC Content**: Percentage calculation
+- **Length**: Total base pairs
+
+### Adding Annotations
+
+1. Open a sequence
+2. Expand **Add Annotation**
+3. Fill in:
+   - **Name**: Feature name (e.g., "GFP Gene")
+   - **Annotation Type**: Gene, CDS, Promoter, Terminator, Primer, etc.
+   - **Start/End Position**: Coordinates (0-indexed)
+   - **Strand**: Forward (+) or Reverse (-)
+   - **Color**: Visual marker color
+4. Click **Add**
+
+### Restriction Site Analysis
+
+1. Open a sequence
+2. Expand **Restriction Sites**
+3. Click **Find Restriction Sites**
+4. View the table of enzymes and cut positions
+
+Supported enzymes include: EcoRI, BamHI, HindIII, XbaI, SalI, PstI, SmaI, KpnI, SacI, XhoI, NdeI, NcoI, NotI, SpeI, AvrII
+
+### Exporting Sequences
+
+- **Export FASTA**: Standard sequence format
+- **Export GenBank**: Full format with annotations
+
+---
+
+## Consolidated View (Phase 6)
+
+View all scientific data for an issue in one place.
+
+### Accessing Consolidated View
+
+1. Open an issue
+2. Click **Consolidated View**
+
+### Features
+
+- **Property Timeline**: View changes to custom fields over time
+- **Compare Versions**: Side-by-side comparison of snapshots
+- **Export History**: Download complete audit trail
+
+---
+
+## Rake Tasks
+
+```bash
+# Seed procedure templates only
+bundle exec rake lab_flow:seed_templates
+
+# Seed Wiki SOPs for a specific project
+bundle exec rake lab_flow:seed_wiki_sops PROJECT=my-project
+
+# Create complete demo project with all features
+bundle exec rake lab_flow:create_example_project
+
+# Calculate metrics for a project
+bundle exec rake lab_flow:calculate_metrics PROJECT=my-project
+
+# Generate FAIR compliance report
+bundle exec rake lab_flow:fair_report PROJECT=my-project
+```
+
+---
+
 ## Version History
 
+- **0.5.0** - Phase 5 & 6: Data Intelligence & Scientific Visualizers
+  - Performance Dashboard with metrics and alerts
+  - Report Generation (PDF, Excel, JSON)
+  - External Systems Integration (Galaxy, OpenBIS)
+  - Webhooks for event notifications
+  - FAIR Metadata support with DOI minting
+  - Molecular Editor with SMILES notation
+  - Molecular Properties calculator
+  - DNA/RNA Sequence Viewer with annotations
+  - Restriction Site Analysis
+  - FASTA/GenBank export
+  - Consolidated View with property timeline
 - **0.4.0** - Phase 4: Compliance & Data Integrity (Electronic Signatures, API Interoperability, Data Provenance, Verified Status)
 - **0.3.2** - Fixed workflow configuration: proper default statuses and transitions for all trackers
 - **0.3.1** - Unified plugin administration with tabbed interface for Templates, Reagents, Equipment, and Units

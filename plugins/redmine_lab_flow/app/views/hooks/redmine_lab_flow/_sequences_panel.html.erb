@@ -1,0 +1,48 @@
+<% if sequences.any? %>
+  <div class="sequences-panel box">
+    <h3><%= l(:label_sequences) %></h3>
+    <ul class="sequences-list">
+      <% sequences.each do |seq| %>
+        <li>
+          <span class="sequence-type sequence-type-<%= seq.sequence_type %>"><%= seq.sequence_type.upcase %></span>
+          <%= link_to seq.name, issue_lab_flow_sequence_path(issue, seq) %>
+          <span class="sequence-info">
+            (<%= number_with_delimiter(seq.length) %> bp<%= ', circular' if seq.circular? %>)
+          </span>
+        </li>
+      <% end %>
+    </ul>
+    <p><%= link_to l(:label_sequence_new), new_issue_lab_flow_sequence_path(issue), class: 'icon icon-add' %></p>
+  </div>
+
+  <style>
+  .sequences-panel {
+    margin-top: 15px;
+  }
+  .sequences-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 10px 0;
+  }
+  .sequences-list li {
+    padding: 5px 0;
+    border-bottom: 1px solid #eee;
+  }
+  .sequence-type {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: bold;
+    margin-right: 5px;
+  }
+  .sequence-type-dna { background: #e3f2fd; color: #1565c0; }
+  .sequence-type-plasmid { background: #f3e5f5; color: #7b1fa2; }
+  .sequence-type-rna { background: #fff3e0; color: #e65100; }
+  .sequence-type-protein { background: #e8f5e9; color: #2e7d32; }
+  .sequence-info {
+    color: #888;
+    font-size: 0.9em;
+  }
+  </style>
+<% end %>

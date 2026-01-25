@@ -1,0 +1,198 @@
+<h2><%= l(:label_molecule_properties) %></h2>
+
+<div class="box">
+  <div class="molecule-display">
+    <div id="molecule-viewer" class="molecule-viewer-large" data-smiles="<%= @smiles %>">
+      <div class="loading"><%= l(:label_loading_viewer) %></div>
+    </div>
+
+    <div class="molecule-details">
+      <h3><%= l(:label_smiles) %></h3>
+      <p><code class="smiles-code"><%= @smiles %></code></p>
+
+      <h3><%= l(:label_molecule_properties) %></h3>
+      <table class="list properties-table">
+        <tbody>
+          <%
+            # Use cache values if available, otherwise fall back to calculated properties
+            formula = @cache&.molecular_formula || @properties[:formula]
+            mw = @cache&.molecular_weight || @properties[:molecular_weight]
+            inchi = @cache&.inchi
+            inchi_key = @cache&.inchi_key
+            log_p = @cache&.log_p || @properties['LogP']
+            tpsa = @cache&.tpsa || @properties['TPSA']
+            hbd = @cache&.hbd || @properties['HBD']
+            hba = @cache&.hba || @properties['HBA']
+            rotatable = @cache&.rotatable_bonds || @properties['numRotatableBonds']
+          %>
+          <% if formula || mw %>
+            <tr>
+              <th><%= l(:label_molecular_formula) %></th>
+              <td><%= formula || 'N/A' %></td>
+            </tr>
+            <tr>
+              <th><%= l(:label_molecular_weight) %></th>
+              <td><%= mw ? "#{mw.round(2)} g/mol" : 'N/A' %></td>
+            </tr>
+            <% if inchi.present? %>
+              <tr>
+                <th><%= l(:label_inchi) %></th>
+                <td><code><%= inchi %></code></td>
+              </tr>
+            <% end %>
+            <% if inchi_key.present? %>
+              <tr>
+                <th><%= l(:label_inchi_key) %></th>
+                <td><code><%= inchi_key %></code></td>
+              </tr>
+            <% end %>
+            <tr>
+              <th><%= l(:label_log_p) %></th>
+              <td><%= log_p || 'N/A' %></td>
+            </tr>
+            <tr>
+              <th><%= l(:label_tpsa) %></th>
+              <td><%= tpsa ? "#{tpsa} Ų" : 'N/A' %></td>
+            </tr>
+            <tr>
+              <th><%= l(:label_hbd) %></th>
+              <td><%= hbd || 'N/A' %></td>
+            </tr>
+            <tr>
+              <th><%= l(:label_hba) %></th>
+              <td><%= hba || 'N/A' %></td>
+            </tr>
+            <tr>
+              <th><%= l(:label_rotatable_bonds) %></th>
+              <td><%= rotatable || 'N/A' %></td>
+            </tr>
+            <% if @cache&.respond_to?(:lipinski_compliant?) %>
+              <%
+                # Calculate Lipinski compliance from properties if cache doesn't have it
+                is_lipinski = if @cache&.molecular_weight.present?
+                  @cache.lipinski_compliant?
+                elsif mw && log_p && hbd && hba
+                  mw <= 500 && log_p <= 5 && hbd <= 5 && hba <= 10
+                else
+                  nil
+                end
+              %>
+              <% unless is_lipinski.nil? %>
+                <tr>
+                  <th><%= l(:label_lipinski_compliant) %></th>
+                  <td>
+                    <span class="<%= is_lipinski ? 'lipinski-pass' : 'lipinski-fail' %>">
+                      <%= is_lipinski ? l(:general_text_yes) : l(:general_text_no) %>
+                    </span>
+                  </td>
+                </tr>
+              <% end %>
+            <% end %>
+          <% else %>
+            <tr>
+              <td colspan="2" class="nodata"><%= l(:label_no_data) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<p class="buttons">
+  <%= link_to l(:label_molecule_editor), lab_flow_molecules_editor_path(smiles: @smiles), class: 'icon icon-edit' %>
+  <%= link_to l(:button_back), :back, class: 'icon icon-back' %>
+</p>
+
+<%= javascript_tag do %>
+document.addEventListener('DOMContentLoaded', function() {
+  const container = document.getElementById('molecule-viewer');
+  if (!container) return;
+
+  const smiles = container.dataset.smiles;
+  if (!smiles) return;
+
+  // Load RDKit.js from CDN
+  const script = document.createElement('script');
+  script.src = 'https://unpkg.com/@rdkit/rdkit/dist/RDKit_minimal.js';
+  script.onload = async function() {
+    try {
+      const RDKit = await initRDKitModule();
+      const mol = RDKit.get_mol(smiles);
+      if (mol) {
+        const svg = mol.get_svg(400, 300);
+        container.innerHTML = svg;
+        mol.delete();
+      } else {
+        container.innerHTML = '<p class="error">Invalid SMILES</p>';
+      }
+    } catch (e) {
+      console.error('RDKit error:', e);
+      container.innerHTML = '<p class="error">Error loading molecule viewer</p>';
+    }
+  };
+  script.onerror = function() {
+    container.innerHTML = '<p class="error">Failed to load molecule viewer library</p>';
+  };
+  document.head.appendChild(script);
+});
+<% end %>
+
+<style>
+.molecule-display {
+  display: flex;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+.molecule-viewer-large {
+  min-width: 400px;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+}
+.molecule-viewer-large .loading {
+  color: #999;
+}
+.molecule-viewer-large .error {
+  color: #c00;
+}
+.molecule-details {
+  flex: 1;
+  min-width: 300px;
+}
+.smiles-code {
+  font-family: monospace;
+  background: #f5f5f5;
+  padding: 5px 10px;
+  border-radius: 3px;
+  display: inline-block;
+  word-break: break-all;
+}
+.properties-table {
+  width: 100%;
+}
+.properties-table th {
+  text-align: left;
+  width: 40%;
+  background: #f9f9f9;
+}
+.properties-table td {
+  font-family: monospace;
+}
+.properties-table code {
+  font-size: 11px;
+  word-break: break-all;
+}
+.lipinski-pass {
+  color: #2e7d32;
+  font-weight: bold;
+}
+.lipinski-fail {
+  color: #c62828;
+  font-weight: bold;
+}
+</style>

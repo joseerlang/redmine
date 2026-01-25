@@ -1,0 +1,85 @@
+<h2><%= l(:label_external_job) %>: <%= @job.external_system.name %></h2>
+
+<div class="box">
+  <div class="job-header">
+    <span class="job-status job-status-<%= @job.status %>"><%= l("label_job_#{@job.status}") %></span>
+    <span class="job-type"><%= @job.job_type %></span>
+  </div>
+
+  <table class="attributes">
+    <tr>
+      <th><%= l(:label_external_system) %>:</th>
+      <td><%= link_to @job.external_system.name, lab_flow_external_system_path(@job.external_system) %></td>
+    </tr>
+    <tr>
+      <th><%= l(:label_external_job_id) %>:</th>
+      <td><code><%= @job.external_job_id %></code></td>
+    </tr>
+    <tr>
+      <th><%= l(:label_submitted_at) %>:</th>
+      <td><%= format_time(@job.submitted_at) %></td>
+    </tr>
+    <% if @job.finished_at %>
+      <tr>
+        <th><%= l(:label_finished_at) %>:</th>
+        <td><%= format_time(@job.finished_at) %></td>
+      </tr>
+      <tr>
+        <th><%= l(:label_duration) %>:</th>
+        <td><%= @job.human_duration %></td>
+      </tr>
+    <% end %>
+    <tr>
+      <th><%= l(:field_author) %>:</th>
+      <td><%= link_to_user @job.user %></td>
+    </tr>
+  </table>
+
+  <% if @job.input_data.present? %>
+    <h3><%= l(:label_input_data) %></h3>
+    <pre class="code-block"><%= JSON.pretty_generate(@job.input_data) rescue @job.input_data %></pre>
+  <% end %>
+
+  <% if @job.result_data.present? %>
+    <h3><%= l(:label_result_data) %></h3>
+    <pre class="code-block"><%= JSON.pretty_generate(@job.result_data) rescue @job.result_data %></pre>
+  <% end %>
+
+  <% if @job.error_message.present? %>
+    <h3><%= l(:label_error_message) %></h3>
+    <div class="flash error"><%= @job.error_message %></div>
+  <% end %>
+</div>
+
+<p class="buttons">
+  <% if @job.status == 'running' %>
+    <%= link_to l(:button_refresh), issue_lab_flow_external_job_path(@issue, @job), class: 'icon icon-reload' %>
+    <%= link_to l(:button_cancel), cancel_issue_lab_flow_external_job_path(@issue, @job), method: :post, data: { confirm: l(:text_are_you_sure) }, class: 'icon icon-cancel' %>
+  <% end %>
+  <% if @job.status == 'completed' && @job.result_data.present? %>
+    <%= link_to l(:label_import_results), import_issue_lab_flow_external_job_path(@issue, @job), method: :post, class: 'icon icon-import' %>
+  <% end %>
+  <%= link_to l(:button_back), issue_lab_flow_external_jobs_path(@issue), class: 'icon icon-back' %>
+</p>
+
+<style>
+.job-header { margin-bottom: 15px; }
+.job-header .job-status { padding: 3px 10px; border-radius: 3px; font-weight: bold; margin-right: 10px; }
+.job-header .job-type { color: #666; font-style: italic; }
+.job-status-completed { background: #c8e6c9; color: #2e7d32; }
+.job-status-running { background: #bbdefb; color: #1565c0; }
+.job-status-pending { background: #fff9c4; color: #f57f17; }
+.job-status-failed { background: #ffcdd2; color: #c62828; }
+.job-status-cancelled { background: #cfd8dc; color: #455a64; }
+.code-block {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+  overflow-x: auto;
+  font-size: 12px;
+}
+table.attributes { margin: 15px 0; }
+table.attributes th { text-align: left; padding: 5px 15px 5px 0; color: #666; }
+table.attributes td { padding: 5px 0; }
+</style>

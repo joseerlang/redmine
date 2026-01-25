@@ -1,0 +1,202 @@
+<h2><%= l(:label_performance_dashboard) %></h2>
+
+<div class="lab-flow-dashboard">
+  <div class="dashboard-controls">
+    <%= form_tag(lab_flow_dashboard_path(@project), method: :get, class: 'dashboard-filters') do %>
+      <label><%= l(:label_days) %>:</label>
+      <%= select_tag :days, options_for_select([7, 14, 30, 60, 90], @recent_days), onchange: 'this.form.submit()' %>
+    <% end %>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="dashboard-summary">
+    <% @metrics_summary.each do |tracker_name, data| %>
+      <div class="summary-card">
+        <h3><%= tracker_name %></h3>
+        <div class="summary-stats">
+          <div class="stat">
+            <span class="stat-value"><%= data[:total] %></span>
+            <span class="stat-label">Total</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value"><%= data[:open] %></span>
+            <span class="stat-label">Open</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value"><%= data[:closed] %></span>
+            <span class="stat-label">Closed</span>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Starvation Alerts -->
+  <% if @starvation_issues.any? %>
+    <div class="starvation-alerts box">
+      <h3 class="icon icon-warning"><%= l(:label_starvation_alerts) %></h3>
+      <table class="list">
+        <thead>
+          <tr>
+            <th>Issue</th>
+            <th>Status</th>
+            <th>Tracker</th>
+            <th><%= l(:label_hours_stuck) %></th>
+            <th>Assigned To</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @starvation_issues.each do |issue| %>
+            <tr class="<%= ((Time.current - issue.updated_on) / 1.hour) > 72 ? 'critical' : 'warning' %>">
+              <td><%= link_to "##{issue.id} #{issue.subject}", issue_path(issue) %></td>
+              <td><%= issue.status.name %></td>
+              <td><%= issue.tracker.name %></td>
+              <td><%= ((Time.current - issue.updated_on) / 1.hour).round(1) %>h</td>
+              <td><%= issue.assigned_to&.name || '-' %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% else %>
+    <p class="nodata"><%= l(:label_no_starvation) %></p>
+  <% end %>
+
+  <!-- Charts -->
+  <div class="dashboard-charts">
+    <div class="chart-container box">
+      <h3><%= l(:label_workflow_metrics) %></h3>
+      <canvas id="workflowChart" width="600" height="300"></canvas>
+    </div>
+
+    <div class="chart-container box">
+      <h3><%= l(:label_throughput) %></h3>
+      <canvas id="throughputChart" width="600" height="300"></canvas>
+    </div>
+  </div>
+</div>
+
+<%= javascript_tag do %>
+document.addEventListener('DOMContentLoaded', function() {
+  // Load Chart.js from CDN if not already loaded
+  if (typeof Chart === 'undefined') {
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+    script.onload = initCharts;
+    document.head.appendChild(script);
+  } else {
+    initCharts();
+  }
+
+  function initCharts() {
+    // Fetch metrics data
+    fetch('<%= lab_flow_metrics_path(@project) %>')
+      .then(response => response.json())
+      .then(data => {
+        if (data.labels && data.datasets) {
+          new Chart(document.getElementById('workflowChart'), {
+            type: 'bar',
+            data: data,
+            options: {
+              responsive: true,
+              plugins: {
+                legend: { position: 'top' },
+                title: { display: false }
+              },
+              scales: {
+                y: { beginAtZero: true }
+              }
+            }
+          });
+        }
+      })
+      .catch(console.error);
+
+    // Bottleneck chart
+    fetch('<%= lab_flow_bottlenecks_path(@project) %>')
+      .then(response => response.json())
+      .then(data => {
+        if (data && data.length > 0) {
+          new Chart(document.getElementById('throughputChart'), {
+            type: 'bar',
+            data: {
+              labels: data.map(d => d.status_name),
+              datasets: [{
+                label: 'Avg Hours in Status',
+                data: data.map(d => d.avg_hours),
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+              }]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              plugins: {
+                legend: { display: false }
+              }
+            }
+          });
+        }
+      })
+      .catch(console.error);
+  }
+});
+<% end %>
+
+<style>
+.lab-flow-dashboard {
+  padding: 10px 0;
+}
+.dashboard-summary {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.summary-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  min-width: 200px;
+  flex: 1;
+}
+.summary-card h3 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  color: #666;
+}
+.summary-stats {
+  display: flex;
+  gap: 15px;
+}
+.stat {
+  text-align: center;
+}
+.stat-value {
+  display: block;
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+}
+.stat-label {
+  font-size: 11px;
+  color: #888;
+}
+.starvation-alerts tr.critical {
+  background-color: #fee;
+}
+.starvation-alerts tr.warning {
+  background-color: #ffd;
+}
+.dashboard-charts {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.chart-container {
+  flex: 1;
+  min-width: 400px;
+}
+</style>

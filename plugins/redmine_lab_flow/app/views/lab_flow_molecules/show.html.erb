@@ -1,0 +1,143 @@
+<h2><%= l(:label_molecule_viewer) %></h2>
+
+<div class="box">
+  <div class="molecule-info">
+    <table class="attributes">
+      <tr>
+        <th>SMILES:</th>
+        <td><code><%= @smiles %></code></td>
+      </tr>
+      <% if @properties %>
+        <tr>
+          <th><%= l(:label_molecular_weight) %>:</th>
+          <td><%= @properties[:molecular_weight] %> g/mol</td>
+        </tr>
+        <tr>
+          <th><%= l(:label_molecular_formula) %>:</th>
+          <td><%= @properties[:molecular_formula] %></td>
+        </tr>
+        <tr>
+          <th>LogP:</th>
+          <td><%= @properties[:logp] %></td>
+        </tr>
+        <tr>
+          <th>TPSA:</th>
+          <td><%= @properties[:tpsa] %> A<sup>2</sup></td>
+        </tr>
+        <tr>
+          <th>HBD:</th>
+          <td><%= @properties[:hbd] %></td>
+        </tr>
+        <tr>
+          <th>HBA:</th>
+          <td><%= @properties[:hba] %></td>
+        </tr>
+        <tr>
+          <th><%= l(:label_rotatable_bonds) %>:</th>
+          <td><%= @properties[:rotatable_bonds] %></td>
+        </tr>
+      <% end %>
+    </table>
+  </div>
+
+  <div id="molecule-viewer"
+       class="molecule-viewer-container"
+       data-smiles="<%= @smiles %>">
+    <div class="loading"><%= l(:label_loading_viewer) %></div>
+  </div>
+
+  <% if @properties && @properties[:lipinski_violations] %>
+    <div class="lipinski-rule">
+      <h4><%= l(:label_lipinski_rule_of_five) %></h4>
+      <% if @properties[:lipinski_violations] == 0 %>
+        <span class="lipinski-pass"><%= l(:label_lipinski_pass) %></span>
+      <% else %>
+        <span class="lipinski-fail"><%= l(:label_lipinski_violations, count: @properties[:lipinski_violations]) %></span>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+
+<p class="buttons">
+  <%= link_to l(:label_export_mol), export_issue_lab_flow_molecule_path(@issue, export_format: 'mol'), class: 'icon icon-download' if @issue %>
+  <%= link_to l(:label_export_sdf), export_issue_lab_flow_molecule_path(@issue, export_format: 'sdf'), class: 'icon icon-download' if @issue %>
+  <%= link_to l(:button_back), issue_path(@issue), class: 'icon icon-back' if @issue %>
+</p>
+
+<%= javascript_tag do %>
+document.addEventListener('DOMContentLoaded', function() {
+  const container = document.getElementById('molecule-viewer');
+  if (!container) return;
+
+  const smiles = container.dataset.smiles;
+  if (!smiles) return;
+
+  // Load RDKit.js from CDN
+  const script = document.createElement('script');
+  script.src = 'https://unpkg.com/@rdkit/rdkit/dist/RDKit_minimal.js';
+  script.onload = async function() {
+    try {
+      const RDKit = await initRDKitModule();
+      const mol = RDKit.get_mol(smiles);
+      if (mol) {
+        const svg = mol.get_svg(500, 400);
+        container.innerHTML = svg;
+        mol.delete();
+      } else {
+        container.innerHTML = '<p class="error">Invalid SMILES</p>';
+      }
+    } catch (e) {
+      console.error('RDKit error:', e);
+      container.innerHTML = '<p class="error">Error loading molecule viewer</p>';
+    }
+  };
+  script.onerror = function() {
+    container.innerHTML = '<p class="error">Failed to load molecule viewer library</p>';
+  };
+  document.head.appendChild(script);
+});
+<% end %>
+
+<style>
+.molecule-viewer-container {
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin: 15px 0;
+  background: #fff;
+}
+.molecule-viewer-container .loading {
+  color: #999;
+}
+.molecule-viewer-container .error {
+  color: #c00;
+}
+.molecule-info {
+  margin-bottom: 15px;
+}
+table.attributes th {
+  text-align: left;
+  padding: 5px 15px 5px 0;
+  color: #666;
+  white-space: nowrap;
+}
+table.attributes td { padding: 5px 0; }
+.lipinski-rule {
+  margin-top: 15px;
+  padding: 10px;
+  background: #f9f9f9;
+  border-radius: 4px;
+}
+.lipinski-rule h4 { margin: 0 0 5px 0; }
+.lipinski-pass {
+  color: #2e7d32;
+  font-weight: bold;
+}
+.lipinski-fail {
+  color: #c62828;
+  font-weight: bold;
+}
+</style>

@@ -1,0 +1,80 @@
+<h2><%= l(:label_electronic_signatures) %>: <%= link_to_issue @issue %></h2>
+
+<div class="box">
+  <% if @signatures.any? %>
+    <table class="list signatures-list">
+      <thead>
+        <tr>
+          <th><%= l(:field_user) %></th>
+          <th><%= l(:label_signature_meaning) %></th>
+          <th><%= l(:field_status) %></th>
+          <th><%= l(:label_signed_at) %></th>
+          <th><%= l(:label_verification) %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @signatures.each do |sig| %>
+          <tr class="signature-entry <%= sig.verified? ? 'verified' : 'invalid' %>">
+            <td class="user">
+              <%= avatar(sig.user, size: 24) %>
+              <%= link_to_user(sig.user) %>
+            </td>
+            <td class="meaning">
+              <span class="signature-meaning <%= sig.signature_meaning %>">
+                <%= (l("label_signature_meaning_#{sig.signature_meaning}") rescue sig.signature_meaning.humanize) %>
+              </span>
+            </td>
+            <td class="status-change">
+              <% if sig.old_status.present? && sig.new_status.present? %>
+                <span class="old-status"><%= sig.old_status %></span>
+                &rarr;
+                <span class="new-status"><%= sig.new_status %></span>
+              <% else %>
+                -
+              <% end %>
+            </td>
+            <td class="signed-at">
+              <%= format_time(sig.signed_at) %>
+            </td>
+            <td class="verification">
+              <% if sig.verified? %>
+                <span class="icon icon-checked" title="<%= l(:label_verified) %>"></span>
+              <% else %>
+                <span class="icon icon-warning" title="<%= l(:label_invalid) %>"></span>
+              <% end %>
+            </td>
+          </tr>
+          <% if sig.comments.present? %>
+            <tr class="signature-comments">
+              <td colspan="5" class="comments"><em><%= sig.comments %></em></td>
+            </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="nodata"><%= l(:label_no_data) %></p>
+  <% end %>
+</div>
+
+<p class="buttons">
+  <%= link_to l(:button_back), issue_path(@issue), class: 'icon icon-back' %>
+</p>
+
+<style>
+.signatures-list .signature-entry.verified { background-color: #f0fff0; }
+.signatures-list .signature-entry.invalid { background-color: #fff0f0; }
+.signature-meaning {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+}
+.signature-meaning.authorship { background: #e3f2fd; color: #1976d2; }
+.signature-meaning.review { background: #fff3e0; color: #f57c00; }
+.signature-meaning.approval { background: #e8f5e9; color: #388e3c; }
+.old-status { color: #999; }
+.new-status { color: #333; font-weight: bold; }
+.signature-comments td { padding-left: 40px; color: #666; }
+</style>

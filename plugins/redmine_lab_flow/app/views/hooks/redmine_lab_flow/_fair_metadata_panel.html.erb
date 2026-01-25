@@ -1,0 +1,62 @@
+<% metadata = issue.lab_flow_fair_metadata %>
+<div class="fair-metadata-panel box">
+  <h3><%= l(:label_fair_metadata) %></h3>
+
+  <% if metadata %>
+    <div class="fair-score">
+      <strong><%= l(:label_fair_score) %>:</strong>
+      <span class="fair-score-value <%= 'good' if metadata.fair_score >= 70 %> <%= 'medium' if metadata.fair_score >= 40 && metadata.fair_score < 70 %> <%= 'low' if metadata.fair_score < 40 %>">
+        <%= metadata.fair_score %>%
+      </span>
+    </div>
+
+    <% if metadata.doi.present? %>
+      <p><strong>DOI:</strong> <%= link_to metadata.doi, "https://doi.org/#{metadata.doi}", target: '_blank' %></p>
+    <% end %>
+
+    <% if metadata.license.present? %>
+      <p><strong><%= l(:label_license) %>:</strong> <%= metadata.license %></p>
+    <% end %>
+
+    <% if metadata.keywords.any? %>
+      <p>
+        <strong><%= l(:label_keywords) %>:</strong>
+        <% metadata.keywords.each do |kw| %>
+          <span class="keyword-tag"><%= kw %></span>
+        <% end %>
+      </p>
+    <% end %>
+  <% else %>
+    <p class="nodata"><%= l(:label_no_data) %></p>
+  <% end %>
+
+  <p>
+    <%= link_to l(:button_edit), issue_lab_flow_fair_path(issue), class: 'icon icon-edit' %>
+    <% if metadata %>
+      <%= link_to l(:label_export_metadata), export_issue_lab_flow_fair_path(issue, export_format: 'schema_org'), class: 'icon icon-download' %>
+    <% end %>
+  </p>
+</div>
+
+<style>
+.fair-metadata-panel {
+  font-size: 0.9em;
+}
+.fair-score-value {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: bold;
+}
+.fair-score-value.good { background: #c8e6c9; color: #2e7d32; }
+.fair-score-value.medium { background: #fff9c4; color: #f57f17; }
+.fair-score-value.low { background: #ffcdd2; color: #c62828; }
+.keyword-tag {
+  display: inline-block;
+  background: #e3f2fd;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-right: 4px;
+  font-size: 0.85em;
+}
+</style>

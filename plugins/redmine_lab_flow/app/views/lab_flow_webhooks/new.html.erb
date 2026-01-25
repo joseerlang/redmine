@@ -1,0 +1,6 @@
+<h2><%= l(:label_webhook_new) %></h2>
+
+<%= form_for @webhook, url: lab_flow_webhooks_path(project_id: @project.identifier), method: :post do |f| %>
+  <%= render partial: 'form', locals: { f: f } %>
+  <%= submit_tag l(:button_create) %>
+<% end %>

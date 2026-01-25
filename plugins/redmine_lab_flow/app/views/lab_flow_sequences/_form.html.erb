@@ -1,0 +1,39 @@
+<%= labelled_form_for @sequence, url: @sequence.new_record? ? issue_lab_flow_sequences_path(@issue) : issue_lab_flow_sequence_path(@issue, @sequence), html: { multipart: true } do |f| %>
+  <%= error_messages_for @sequence %>
+
+  <div class="box tabular">
+    <p>
+      <%= f.label :name, l(:field_name) %>
+      <%= f.text_field :name, size: 40, required: true %>
+    </p>
+
+    <p>
+      <%= f.label :sequence_type, l(:label_sequence_type) %>
+      <%= f.select :sequence_type, LabFlowSequence::SEQUENCE_TYPES.map { |t| [l("label_sequence_type_#{t}"), t] } %>
+    </p>
+
+    <p>
+      <%= f.check_box :circular %>
+      <%= f.label :circular, l(:label_circular) %>
+    </p>
+
+    <p>
+      <%= f.label :sequence_data, l(:label_sequence_data) %>
+      <%= f.text_area :sequence_data, rows: 10, cols: 80, class: 'sequence-input', placeholder: 'Enter sequence or paste FASTA format' %>
+    </p>
+
+    <p>
+      <label><%= l(:label_upload) %> (FASTA/GenBank):</label>
+      <%= file_field_tag :sequence_file %>
+    </p>
+  </div>
+
+  <%= submit_tag @sequence.new_record? ? l(:button_create) : l(:button_save) %>
+<% end %>
+
+<style>
+.sequence-input {
+  font-family: monospace;
+  font-size: 12px;
+}
+</style>

@@ -1,0 +1,125 @@
+<h2><%= l(:label_fair_metadata) %>: <%= link_to_issue @issue %></h2>
+
+<% metadata = @metadata %>
+<div class="box">
+  <% if metadata %>
+    <div class="fair-score-display">
+      <div class="score-circle <%= 'good' if metadata.fair_score >= 70 %> <%= 'medium' if metadata.fair_score >= 40 && metadata.fair_score < 70 %> <%= 'low' if metadata.fair_score < 40 %>">
+        <span class="score-value"><%= metadata.fair_score %>%</span>
+        <span class="score-label">FAIR Score</span>
+      </div>
+      <div class="score-breakdown">
+        <div class="score-item"><strong>F</strong>indable: <%= metadata.findability_score || 0 %>%</div>
+        <div class="score-item"><strong>A</strong>ccessible: <%= metadata.accessibility_score || 0 %>%</div>
+        <div class="score-item"><strong>I</strong>nteroperable: <%= metadata.interoperability_score || 0 %>%</div>
+        <div class="score-item"><strong>R</strong>eusable: <%= metadata.reusability_score || 0 %>%</div>
+      </div>
+    </div>
+
+    <table class="attributes">
+      <% if metadata.doi.present? %>
+        <tr>
+          <th>DOI:</th>
+          <td><%= link_to metadata.doi, "https://doi.org/#{metadata.doi}", target: '_blank' %></td>
+        </tr>
+      <% end %>
+      <% if metadata.license.present? %>
+        <tr>
+          <th><%= l(:label_license) %>:</th>
+          <td><%= metadata.license %></td>
+        </tr>
+      <% end %>
+      <% if metadata.repository_url.present? %>
+        <tr>
+          <th><%= l(:label_repository_url) %>:</th>
+          <td><%= link_to metadata.repository_url, metadata.repository_url, target: '_blank' %></td>
+        </tr>
+      <% end %>
+      <tr>
+        <th><%= l(:label_access_level) %>:</th>
+        <td><%= l("label_access_#{metadata.access_level || 'private'}") %></td>
+      </tr>
+      <tr>
+        <th><%= l(:field_created_on) %>:</th>
+        <td><%= format_time(metadata.created_at) %></td>
+      </tr>
+      <tr>
+        <th><%= l(:field_updated_on) %>:</th>
+        <td><%= format_time(metadata.updated_at) %></td>
+      </tr>
+    </table>
+
+    <% if metadata.keywords.any? %>
+      <h3><%= l(:label_keywords) %></h3>
+      <p>
+        <% metadata.keywords.each do |kw| %>
+          <span class="keyword-tag"><%= kw %></span>
+        <% end %>
+      </p>
+    <% end %>
+
+    <% if metadata.ontology_terms.any? %>
+      <h3><%= l(:label_ontology_terms) %></h3>
+      <ul>
+        <% metadata.ontology_terms.each do |term| %>
+          <li><%= link_to term.label, term.uri, target: '_blank' %> (<%= term.ontology %>)</li>
+        <% end %>
+      </ul>
+    <% end %>
+  <% else %>
+    <p class="nodata"><%= l(:label_no_fair_metadata) %></p>
+  <% end %>
+</div>
+
+<p class="buttons">
+  <%= link_to l(:button_edit), edit_issue_lab_flow_fair_path(@issue), class: 'icon icon-edit' %>
+  <% if metadata %>
+    <%= link_to l(:label_export_datacite), export_issue_lab_flow_fair_path(@issue, export_format: 'datacite'), class: 'icon icon-download' %>
+    <%= link_to l(:label_export_schema_org), export_issue_lab_flow_fair_path(@issue, export_format: 'schema_org'), class: 'icon icon-download' %>
+    <%= link_to l(:label_export_ro_crate), export_issue_lab_flow_fair_path(@issue, export_format: 'ro_crate'), class: 'icon icon-download' %>
+    <% unless metadata.doi.present? %>
+      <%= link_to l(:label_mint_doi), mint_doi_issue_lab_flow_fair_path(@issue), method: :post, data: { confirm: l(:text_confirm_mint_doi) }, class: 'icon icon-bullet-go' %>
+    <% end %>
+  <% end %>
+  <%= link_to l(:button_back), issue_path(@issue), class: 'icon icon-back' %>
+</p>
+
+<style>
+.fair-score-display {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+.score-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-right: 30px;
+  border: 4px solid #ddd;
+}
+.score-circle.good { border-color: #4caf50; background: #e8f5e9; }
+.score-circle.medium { border-color: #ff9800; background: #fff3e0; }
+.score-circle.low { border-color: #f44336; background: #ffebee; }
+.score-value { font-size: 24px; font-weight: bold; }
+.score-label { font-size: 10px; color: #666; }
+.score-breakdown { display: flex; flex-direction: column; gap: 5px; }
+.score-item { font-size: 14px; }
+.keyword-tag {
+  display: inline-block;
+  background: #e3f2fd;
+  padding: 3px 10px;
+  border-radius: 15px;
+  margin-right: 5px;
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+table.attributes th { text-align: left; padding: 5px 15px 5px 0; color: #666; }
+table.attributes td { padding: 5px 0; }
+</style>

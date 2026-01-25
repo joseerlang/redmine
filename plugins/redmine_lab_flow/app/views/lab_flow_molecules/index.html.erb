@@ -1,0 +1,95 @@
+<h2><%= l(:label_molecules) %>: <%= link_to_issue @issue %></h2>
+
+<% if @molecules.any? %>
+  <div class="molecules-grid">
+    <% @molecules.each do |mol| %>
+      <div class="molecule-card">
+        <div class="molecule-preview" id="mol-preview-<%= mol[:id] %>" data-smiles="<%= mol[:smiles] %>">
+          <div class="loading">...</div>
+        </div>
+        <div class="molecule-info">
+          <code class="smiles"><%= truncate(mol[:smiles], length: 30) %></code>
+          <% if mol[:properties] %>
+            <div class="properties">
+              <span>MW: <%= mol[:properties][:molecular_weight] %></span>
+              <span>LogP: <%= mol[:properties][:logp] %></span>
+            </div>
+          <% end %>
+          <%= link_to l(:button_show), issue_lab_flow_molecule_path(@issue, mol[:id]) %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+<% else %>
+  <p class="nodata"><%= l(:label_no_molecules) %></p>
+<% end %>
+
+<%= link_to l(:button_back), issue_path(@issue), class: 'icon icon-back' %>
+
+<%= javascript_tag do %>
+document.addEventListener('DOMContentLoaded', async function() {
+  // Load RDKit.js
+  const script = document.createElement('script');
+  script.src = 'https://unpkg.com/@rdkit/rdkit/dist/RDKit_minimal.js';
+  script.onload = async function() {
+    try {
+      const RDKit = await initRDKitModule();
+
+      document.querySelectorAll('.molecule-preview').forEach(container => {
+        const smiles = container.dataset.smiles;
+        if (smiles) {
+          const mol = RDKit.get_mol(smiles);
+          if (mol) {
+            container.innerHTML = mol.get_svg(150, 120);
+            mol.delete();
+          }
+        }
+      });
+    } catch (e) {
+      console.error('RDKit error:', e);
+    }
+  };
+  document.head.appendChild(script);
+});
+<% end %>
+
+<style>
+.molecules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+.molecule-card {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+}
+.molecule-preview {
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9f9f9;
+  border-bottom: 1px solid #eee;
+}
+.molecule-preview .loading { color: #999; }
+.molecule-info {
+  padding: 10px;
+}
+.molecule-info .smiles {
+  display: block;
+  font-size: 10px;
+  color: #666;
+  margin-bottom: 5px;
+}
+.molecule-info .properties {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 5px;
+}
+.molecule-info .properties span {
+  margin-right: 10px;
+}
+</style>

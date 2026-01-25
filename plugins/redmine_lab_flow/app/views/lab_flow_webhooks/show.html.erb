@@ -1,0 +1,40 @@
+<h2><%= @webhook.name %></h2>
+
+<div class="box">
+  <p><strong><%= l(:label_event_type) %>:</strong> <%= l("label_event_#{@webhook.event_type}") rescue @webhook.event_type %></p>
+  <p><strong><%= l(:field_url) %>:</strong> <code><%= @webhook.url %></code></p>
+  <p><strong><%= l(:field_active) %>:</strong> <%= @webhook.active? ? l(:general_text_yes) : l(:general_text_no) %></p>
+  <% if @webhook.secret.present? %>
+    <p><strong><%= l(:label_webhook_secret) %>:</strong> <code>********</code></p>
+  <% end %>
+
+  <h3><%= l(:label_recent_deliveries) %></h3>
+  <% if @recent_deliveries&.any? %>
+    <table class="list">
+      <thead>
+        <tr>
+          <th><%= l(:field_created_on) %></th>
+          <th><%= l(:field_status) %></th>
+          <th><%= l(:label_response_code) %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @recent_deliveries.each do |delivery| %>
+          <tr>
+            <td><%= format_time(delivery[:sent_at]) %></td>
+            <td><%= delivery[:success] ? l(:label_success) : l(:label_failed) %></td>
+            <td><%= delivery[:response_code] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="nodata"><%= l(:label_no_deliveries) %></p>
+  <% end %>
+</div>
+
+<p class="buttons">
+  <%= link_to l(:label_test_webhook), test_lab_flow_webhook_path(@webhook), method: :post, class: 'icon icon-test' %>
+  <%= link_to l(:button_edit), edit_lab_flow_webhook_path(@webhook), class: 'icon icon-edit' %>
+  <%= link_to l(:button_back), lab_flow_webhooks_path, class: 'icon icon-back' %>
+</p>

@@ -1,0 +1,48 @@
+<%= form_for @template, url: @template.new_record? ? lab_flow_report_templates_path : lab_flow_report_template_path(@template), html: { class: 'tabular' } do |f| %>
+  <%= error_messages_for @template %>
+
+  <div class="box tabular">
+    <p>
+      <label for="lab_flow_report_template_name"><%= l(:field_name) %> <span class="required">*</span></label>
+      <%= f.text_field :name, size: 60, required: true %>
+    </p>
+
+    <p>
+      <label for="lab_flow_report_template_description"><%= l(:field_description) %></label>
+      <%= f.text_area :description, rows: 3, cols: 60 %>
+    </p>
+
+    <p>
+      <label for="lab_flow_report_template_report_type"><%= l(:label_report_type) %></label>
+      <%= f.select :report_type, LabFlowReportTemplate::REPORT_TYPES.map { |t| [l("label_report_type_#{t}"), t] } %>
+    </p>
+
+    <p>
+      <label for="lab_flow_report_template_tracker_id"><%= l(:field_tracker) %></label>
+      <%= f.collection_select :tracker_id, Tracker.sorted, :id, :name, include_blank: true %>
+    </p>
+
+    <p>
+      <label for="lab_flow_report_template_template_content"><%= l(:label_template_content) %></label>
+      <%= f.text_area :template_content, rows: 15, cols: 80, class: 'wiki-edit' %>
+      <em class="info"><%= l(:text_template_liquid_help) %></em>
+    </p>
+
+    <p>
+      <%= f.check_box :include_eln_narrative %>
+      <label for="lab_flow_report_template_include_eln_narrative"><%= l(:label_include_eln) %></label>
+    </p>
+
+    <p>
+      <%= f.check_box :include_signatures %>
+      <label for="lab_flow_report_template_include_signatures"><%= l(:label_include_signatures) %></label>
+    </p>
+
+    <p>
+      <%= f.check_box :active %>
+      <label for="lab_flow_report_template_active"><%= l(:label_active) %></label>
+    </p>
+  </div>
+
+  <%= submit_tag @template.new_record? ? l(:button_create) : l(:button_save) %>
+<% end %>

@@ -1,0 +1,102 @@
+<h2><%= l(:label_edit_fair_metadata) %>: <%= link_to_issue @issue %></h2>
+
+<%= form_for @metadata, url: issue_lab_flow_fair_path(@issue), method: :patch do |f| %>
+  <%= error_messages_for 'metadata' %>
+
+  <div class="box tabular">
+    <p>
+      <%= f.label :doi, 'DOI' %>
+      <%= f.text_field :doi, size: 40, placeholder: '10.1234/example.123' %>
+      <em class="info"><%= l(:text_doi_format_info) %></em>
+    </p>
+
+    <p>
+      <%= f.label :license, l(:label_license) %>
+      <%= f.select :license, [
+        ['CC BY 4.0', 'CC-BY-4.0'],
+        ['CC BY-SA 4.0', 'CC-BY-SA-4.0'],
+        ['CC BY-NC 4.0', 'CC-BY-NC-4.0'],
+        ['CC0 1.0', 'CC0-1.0'],
+        ['MIT', 'MIT'],
+        ['Apache 2.0', 'Apache-2.0'],
+        ['GPL 3.0', 'GPL-3.0'],
+        [l(:label_proprietary), 'Proprietary'],
+        [l(:label_other), 'Other']
+      ], include_blank: true %>
+    </p>
+
+    <p>
+      <%= f.label :access_level, l(:label_access_level) %>
+      <%= f.select :access_level, [
+        [l(:label_access_public), 'public'],
+        [l(:label_access_restricted), 'restricted'],
+        [l(:label_access_private), 'private']
+      ] %>
+    </p>
+
+    <p>
+      <%= f.label :repository_url, l(:label_repository_url) %>
+      <%= f.url_field :repository_url, size: 60, placeholder: 'https://github.com/...' %>
+    </p>
+
+    <p>
+      <%= f.label :keywords, l(:label_keywords) %>
+      <%= f.text_field :keywords_string, size: 60, value: @metadata.keywords.join(', '), placeholder: l(:text_keywords_comma_separated) %>
+      <em class="info"><%= l(:text_keywords_comma_separated) %></em>
+    </p>
+
+    <p>
+      <%= f.label :description, l(:field_description) %>
+      <%= f.text_area :description, rows: 5, cols: 60 %>
+    </p>
+
+    <p>
+      <%= f.label :creators, l(:label_creators) %>
+      <%= f.text_area :creators_string, rows: 3, cols: 60, value: @metadata.creators&.join("\n"), placeholder: "Name 1\nName 2" %>
+      <em class="info"><%= l(:text_one_per_line) %></em>
+    </p>
+
+    <p>
+      <%= f.label :funding_reference, l(:label_funding_reference) %>
+      <%= f.text_field :funding_reference, size: 60, placeholder: 'Grant number or funding agency' %>
+    </p>
+  </div>
+
+  <fieldset class="collapsible collapsed">
+    <legend onclick="toggleFieldset(this);"><%= l(:label_ontology_terms) %></legend>
+    <div style="display: none;">
+      <p><%= l(:text_ontology_search_info) %></p>
+      <div id="ontology-search">
+        <input type="text" id="ontology-query" placeholder="<%= l(:label_search_ontology) %>" size="40">
+        <button type="button" onclick="searchOntology()"><%= l(:button_search) %></button>
+        <div id="ontology-results"></div>
+      </div>
+      <div id="selected-ontology-terms">
+        <% @metadata.ontology_terms.each do |term| %>
+          <div class="ontology-term">
+            <input type="hidden" name="ontology_term_ids[]" value="<%= term.id %>">
+            <%= term.label %> (<%= term.ontology %>)
+            <a href="#" onclick="this.parentNode.remove(); return false;">&times;</a>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </fieldset>
+
+  <%= submit_tag l(:button_save) %>
+  <%= link_to l(:button_cancel), issue_lab_flow_fair_path(@issue), class: 'icon icon-cancel' %>
+<% end %>
+
+<style>
+.ontology-term {
+  display: inline-block;
+  background: #e3f2fd;
+  padding: 3px 10px;
+  border-radius: 15px;
+  margin: 3px;
+  font-size: 12px;
+}
+.ontology-term a { margin-left: 5px; color: #999; text-decoration: none; }
+.ontology-term a:hover { color: #c00; }
+#ontology-results { margin-top: 10px; max-height: 200px; overflow-y: auto; }
+</style>

@@ -1,0 +1,47 @@
+<%= form_for @system, url: @system.new_record? ? lab_flow_external_systems_path : lab_flow_external_system_path(@system), html: { class: 'tabular' } do |f| %>
+  <%= error_messages_for @system %>
+
+  <div class="box tabular">
+    <p>
+      <label for="lab_flow_external_system_name"><%= l(:field_name) %> <span class="required">*</span></label>
+      <%= f.text_field :name, size: 40, required: true %>
+    </p>
+
+    <p>
+      <label for="lab_flow_external_system_system_type"><%= l(:label_system_type) %></label>
+      <%= f.select :system_type, LabFlowExternalSystem::SYSTEM_TYPES.map { |t| [l("label_system_type_#{t}"), t] } %>
+    </p>
+
+    <p>
+      <label for="lab_flow_external_system_base_url"><%= l(:label_base_url) %> <span class="required">*</span></label>
+      <%= f.text_field :base_url, size: 60, required: true, placeholder: 'https://example.com/api' %>
+    </p>
+
+    <p>
+      <label for="lab_flow_external_system_auth_type"><%= l(:label_auth_type) %></label>
+      <%= f.select :auth_type, LabFlowExternalSystem::AUTH_TYPES.map { |t| [t.humanize, t] } %>
+    </p>
+
+    <p>
+      <label for="lab_flow_external_system_api_key"><%= l(:label_api_key) %></label>
+      <%= f.text_field :api_key, size: 60 %>
+    </p>
+
+    <p>
+      <label for="lab_flow_external_system_api_secret"><%= l(:label_api_secret) %></label>
+      <%= f.password_field :api_secret, size: 60 %>
+    </p>
+
+    <p>
+      <label for="lab_flow_external_system_health_check_url"><%= l(:label_health_check) %> URL</label>
+      <%= f.text_field :health_check_url, size: 60, placeholder: 'Optional - defaults to base URL' %>
+    </p>
+
+    <p>
+      <%= f.check_box :active %>
+      <label for="lab_flow_external_system_active"><%= l(:label_active) %></label>
+    </p>
+  </div>
+
+  <%= submit_tag @system.new_record? ? l(:button_create) : l(:button_save) %>
+<% end %>

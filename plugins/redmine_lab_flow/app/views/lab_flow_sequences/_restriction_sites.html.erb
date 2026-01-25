@@ -1,0 +1,46 @@
+<% if @restriction_sites.present? %>
+  <table class="list restriction-sites-table">
+    <thead>
+      <tr>
+        <th><%= l(:field_name) %></th>
+        <th>Pattern</th>
+        <th>Position</th>
+        <th>Cuts</th>
+      </tr>
+    </thead>
+    <tbody>
+      <%
+        # Group sites by enzyme
+        grouped = @restriction_sites.group_by { |s| s[:enzyme] }
+      %>
+      <% grouped.each do |enzyme, sites| %>
+        <tr>
+          <td><strong><%= enzyme %></strong></td>
+          <td><code><%= sites.first[:pattern] %></code></td>
+          <td>
+            <%= sites.map { |s| s[:position] + 1 }.join(', ') %>
+          </td>
+          <td><%= sites.count %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+  <p class="info">
+    Found <%= @restriction_sites.count %> restriction site(s) from <%= grouped.keys.count %> enzyme(s).
+  </p>
+<% else %>
+  <p class="nodata"><%= l(:label_no_data) %></p>
+<% end %>
+
+<style>
+.restriction-sites-table {
+  margin-top: 10px;
+  width: 100%;
+}
+.restriction-sites-table code {
+  background: #f5f5f5;
+  padding: 2px 5px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+</style>

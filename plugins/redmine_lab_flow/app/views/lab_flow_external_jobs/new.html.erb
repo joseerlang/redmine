@@ -1,0 +1,24 @@
+<h2><%= l(:label_submit_job) %></h2>
+
+<%= form_tag issue_lab_flow_external_jobs_path(@issue), method: :post do %>
+  <div class="box tabular">
+    <p>
+      <%= label_tag :external_system_id, l(:label_external_system) %>
+      <%= select_tag :external_system_id, options_from_collection_for_select(@external_systems, :id, :name), include_blank: true, required: true %>
+    </p>
+
+    <p>
+      <%= label_tag :job_type, l(:label_job_type) %>
+      <%= text_field_tag :job_type, '', size: 30, required: true, placeholder: 'workflow_id or job_name' %>
+    </p>
+
+    <p>
+      <%= label_tag :input_data, l(:label_input_data) %>
+      <%= text_area_tag :input_data, '', rows: 10, cols: 60, placeholder: '{"param1": "value1", "param2": "value2"}' %>
+      <em class="info"><%= l(:text_json_format) %></em>
+    </p>
+  </div>
+
+  <%= submit_tag l(:button_submit) %>
+  <%= link_to l(:button_cancel), issue_path(@issue), class: 'icon icon-cancel' %>
+<% end %>
