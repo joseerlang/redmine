@@ -1683,11 +1683,6 @@ module ApplicationHelper
         javascript_include_tag('context_menu') +
           stylesheet_link_tag('context_menu')
       end
-      if l(:direction) == 'rtl'
-        content_for :header_tags do
-          stylesheet_link_tag('context_menu_rtl')
-        end
-      end
       @context_menu_included = true
     end
     nil
@@ -1806,9 +1801,6 @@ module ApplicationHelper
       'rails-ujs',
       'tribute-5.1.3.min'
     )
-    if Setting.wiki_tablesort_enabled?
-      tags << javascript_include_tag('tablesort-5.2.1.min.js', 'tablesort-5.2.1.number.min.js')
-    end
     tags << javascript_include_tag('application-legacy', 'responsive')
     unless User.current.pref.warn_on_leaving_unsaved == '0'
       warn_text = escape_javascript(l(:text_warn_on_leaving_unsaved))
@@ -1931,11 +1923,10 @@ module ApplicationHelper
   end
 
   def copy_object_url_link(url)
-    link_to_function(
-      sprite_icon('copy-link', l(:button_copy_link)), 'copyDataClipboardTextToClipboard(this);',
-      class: 'icon icon-copy-link',
-      data: {'clipboard-text' => url}
-    )
+    link_to sprite_icon('copy-link', l(:button_copy_link)),
+            '#',
+            class: 'icon icon-copy-link',
+            data: {clipboard_text: url, controller: 'clipboard', action: 'clipboard#copyText'}
   end
 
   private
